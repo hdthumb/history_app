@@ -101,6 +101,50 @@ var EMP = [
 ["am","Spanish colonial Americas",1521,1825,"Silver, missions and viceroyalties."],
 ["am","United States",1776,2026,"Independence to superpower."]
 ];
+/* Added spans: fills gaps, mostly the Bronze and Iron Age. Many dates are approximate (middle chronology). */
+EMP = EMP.concat([
+["me","Elam",-2700,-539,"c. dates. Kingdom in south-west Iran with its capital at Susa; long rival of Mesopotamia, absorbed by Persia."],
+["me","Akkadian Empire",-2334,-2154,"c. dates. Sargon of Akkad unites Mesopotamia: often called the first empire."],
+["me","Old and Middle Assyria",-2025,-912,"c. dates. Assur grows from a trading city into a regional kingdom before the Neo-Assyrian expansion."],
+["me","Old Babylonian Empire",-1894,-1595,"c. dates. Hammurabi and his law code; ended by a Hittite raid on Babylon."],
+["me","Hittite Empire",-1650,-1180,"c. dates. Anatolian power; fought Egypt at Kadesh; collapses in the Late Bronze Age collapse."],
+["me","Mitanni",-1550,-1260,"c. dates. Hurrian kingdom in northern Syria and Mesopotamia; overrun by Hittites and Assyria."],
+["me","Phoenician city-states",-1500,-332,"c. dates. Tyre, Sidon and Byblos: seafaring traders whose alphabet spread around the Mediterranean."],
+["me","Kingdoms of Israel and Judah",-1050,-586,"c. dates. Israel falls to Assyria (722 BCE), Judah to Babylon (586 BCE)."],
+["me","Carthage",-814,-146,"Phoenician colony in Tunisia that became Rome's great rival; destroyed in the Third Punic War."],
+["me","Ptolemaic Egypt",-305,-30,"Greek dynasty founded by Alexander's general Ptolemy; ends with Cleopatra."],
+["me","Ayyubid Sultanate",1171,1260,"Saladin's dynasty in Egypt and Syria; retakes Jerusalem in 1187."],
+["me","Almohad Caliphate",1121,1269,"Berber empire across North Africa and al-Andalus."],
+["eu","Minoan Crete",-2700,-1450,"c. dates. Palace civilisation of Knossos; Linear A script."],
+["eu","Mycenaean Greece",-1600,-1100,"c. dates. Bronze Age Greek kingdoms of the Trojan War legends; Linear B."],
+["eu","Etruscan civilisation",-900,-100,"c. dates. City-states of central Italy that shaped early Rome."],
+["eu","Macedonian Empire (Alexander)",-336,-323,"Alexander the Great conquers from Greece to Egypt and India."],
+["eu","Republic of Venice",697,1797,"Maritime trading republic; ended by Napoleon."],
+["eu","Polish-Lithuanian Commonwealth",1569,1795,"Large elective monarchy; partitioned by Russia, Prussia and Austria."],
+["eu","Swedish Empire",1611,1721,"Baltic great power from Gustavus Adolphus to the Great Northern War."],
+["eu","Dutch colonial empire",1602,1975,"VOC trading empire in Asia, colonies in the Americas; ends with Suriname's independence."],
+["af","Kerma (Kingdom of Kush, early)",-2500,-1500,"c. dates. First Nubian kingdom on the Nile in Sudan."],
+["af","Benin Kingdom",1180,1897,"Edo kingdom in Nigeria famous for its bronzes; taken by Britain in 1897."],
+["af","Oyo Empire",1600,1836,"c. dates. Yoruba empire in West Africa."],
+["af","Ashanti Empire",1701,1901,"Akan state in Ghana; annexed by Britain after the War of the Golden Stool."],
+["af","Sokoto Caliphate",1804,1903,"Fulani jihad state in northern Nigeria."],
+["sa","Vedic period",-1500,-500,"c. dates. Vedas composed; foundations of Hinduism and the caste system."],
+["ca","Scythians",-900,-200,"c. dates. Iranian-speaking nomads of the Eurasian steppe."],
+["ca","Xiongnu",-209,93,"Steppe confederation that pressed Han China; built the first steppe empire."],
+["ca","Khazar Khaganate",650,969,"Turkic trading state between the Black Sea and Caspian."],
+["ca","Ilkhanate",1256,1335,"Mongol khanate ruling Iran and Iraq; sacked Baghdad in 1258."],
+["ea","Yayoi Japan",-300,300,"c. dates. Rice farming and metalworking reach Japan."],
+["ea","Sui dynasty",581,618,"Reunifies China; Grand Canal."],
+["ea","Goryeo Korea",918,1392,"Korean kingdom that gives Korea its name."],
+["ea","Kamakura shogunate",1185,1333,"First samurai government in Japan; resists Mongol invasions."],
+["ea","Ashikaga (Muromachi) shogunate",1336,1573,"Weak shogunate leading into the Warring States period."],
+["se","Funan",50,550,"c. dates. Early trading kingdom in the Mekong delta."],
+["se","Champa",192,1832,"Cham kingdoms in central and southern Vietnam."],
+["am","Chavín culture",-900,-200,"c. dates. Andean religious centre at Chavín de Huántar."],
+["am","Moche",100,800,"c. dates. North Peruvian coast: irrigation, pottery, Huaca del Sol."],
+["am","Wari Empire",600,1000,"c. dates. Andean highland empire, precursor to the Inca."],
+["am","Tiwanaku",500,1000,"c. dates. City-state near Lake Titicaca."]
+]);
 
 /* [country, year, title, why it matters, tier, who was involved] */
 var EVT = [

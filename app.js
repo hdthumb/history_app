@@ -1,7 +1,7 @@
 (function () {
 'use strict';
 var GUT = 74, DAY = 86400000;
-var S = { tab: 'tl', tier: 1, emp: true, cf: '', sel: null, P: 1, pc: null, pp: 'ppl', pq: '', cq: '', docs: new Map(), edit: null, add: null, rv: null, rvset: { scope: 'read', types: { evt: true, ppl: true, plc: true }, detail: false }, lkOpen: false, lkq: '' };
+var S = { tab: 'tl', tier: 1, emp: true, ev: true, hid: {}, cf: '', sel: null, P: 1, pc: null, pp: 'ppl', pq: '', cq: '', docs: new Map(), edit: null, add: null, rv: null, rvset: { scope: 'read', types: { evt: true, ppl: true, plc: true }, detail: false }, lkOpen: false, lkq: '' };
 var linkSet = new Set();
 var $ = function (s, r) { return (r || document).querySelector(s); };
 var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -79,8 +79,9 @@ function countryOptions(sel, blank) {
 
 /* ---------- timeline ---------- */
 function visible(it) {
-  if (it.type === 'emp') return S.emp;
+  if (it.type === 'emp') return S.emp || it.id === S.sel;
   if (it.type !== 'evt') return false;
+  if (!S.ev && it.id !== S.sel) return false;
   if (it.id === S.sel) return true;
   if (S.tier === 1 && it.tier !== 1) return false;
   if (S.cf && it.country !== S.cf) return false;
@@ -90,36 +91,41 @@ function cls(it) { return readCls(it) + (it.id === S.sel ? ' sel' : '') + (S.sel
 function evHtml(e, x, y, label, wpx) {
   return '<button class="ev' + (label ? '' : ' dot') + cls(e) + '" data-id="' + e.id + '" style="left:' + x + 'px;top:' + y + 'px" title="' + esc(fy(e.start) + ' ' + e.title) + '"><i></i><b>' + esc(e.title) + '</b></button>';
 }
-/* One compact lane: a thin event strip of dots on top, with the region's empires packed as bars beneath. Labels only appear where they fit. */
-function layoutLane(list, xOf) {
+/* One lane per region: an optional strip of event dots on top, then the region's spans packed into rows.
+   A span too short for its name gets the name printed just after the bar, and the row keeps room for it. */
+function packLane(list, xOf) {
   var bars = list.filter(function (i) { return i.type === 'emp'; }).sort(function (a, b) { return a.start - b.start || b.end - a.end; });
-  var evs = list.filter(function (i) { return i.type === 'evt'; }).sort(function (a, b) { return (a.tier - b.tier) || (a.start - b.start); });
-  var html = '', pos = {}, rows = [], BH = 26, placed = [], labels = [];
+  var rows = [], out = [];
   bars.forEach(function (b) {
-    var x0 = xOf(b.start), w = Math.max(xOf(Math.min(b.end, MAX)) - x0, 6);
+    var x0 = xOf(b.start), w = Math.max(xOf(Math.min(b.end, MAX)) - x0, 6), lw = b.title.length * 6.4 + 16, outside = w < lw;
     var r = rows.findIndex(function (e) { return e <= x0; });
     if (r < 0) { r = rows.length; rows.push(0); }
-    rows[r] = x0 + w + 2;
-    var y = 26 + r * BH;
-    html += '<button class="bar' + cls(b) + '" data-id="' + b.id + '" style="left:' + x0 + 'px;width:' + w + 'px;top:' + y + 'px" title="' + esc(b.title + ' (' + yearLine(b) + ')') + '"><span>' + esc(b.title) + '</span></button>';
-    pos[b.id] = { x: x0 + Math.min(w / 2, 14), y: y + 11 };
-    placed.push({ b: b, x0: x0, x1: x0 + w, y: y });
+    rows[r] = x0 + w + (outside ? lw + 4 : 2);
+    out.push({ b: b, x0: x0, w: w, r: r, outside: outside });
   });
-  var nrows = Math.max(rows.length, 1);
-  var showLabels = S.P >= 3.5, dots = [];
-  evs.forEach(function (e) {
-    dots.push({ e: e, x: xOf(e.start), cy: 13, lab: false });
+  return { bars: out, nrows: rows.length, evs: list.filter(function (i) { return i.type === 'evt'; }) };
+}
+function layoutLane(pk, xOf, BH) {
+  var html = '', pos = {}, labels = [], top = S.ev ? 26 : 6;
+  pk.bars.forEach(function (o) {
+    var b = o.b, y = top + o.r * BH;
+    html += '<button class="bar' + (o.outside ? ' out' : '') + cls(b) + '" data-id="' + b.id + '" style="left:' + o.x0 + 'px;width:' + o.w + 'px;top:' + y + 'px" title="' + esc(b.title + ' (' + yearLine(b) + ')') + '"><span>' + esc(b.title) + '</span></button>';
+    pos[b.id] = { x: o.x0 + Math.min(o.w / 2, 14), y: y + (BH - 4) / 2 };
   });
-  dots.forEach(function (d) {
-    var e = d.e, w = e.title.length * 6 + 14;
-    if ((showLabels && e.tier === 1) || e.id === S.sel) {
-      var clash = dots.some(function (o) { return o !== d && o.cy === d.cy && o.x > d.x - 8 && o.x < d.x + 10 + w; }) ||
-        labels.some(function (l) { return l.y === d.cy && d.x - 8 < l.x1 && d.x + 10 + w > l.x0; });
-      if (!clash || e.id === S.sel) { d.lab = true; labels.push({ y: d.cy, x0: d.x - 8, x1: d.x + 10 + w }); }
-    }
-  });
-  dots.forEach(function (d) { html += evHtml(d.e, d.x - 6, d.cy - 9, d.lab); pos[d.e.id] = { x: d.x, y: d.cy }; });
-  return { html: html, pos: pos, h: 30 + (rows.length ? rows.length * BH : 0) };
+  if (S.ev) {
+    var evs = pk.evs.slice().sort(function (a, b) { return (a.tier - b.tier) || (a.start - b.start); });
+    var showLabels = S.P >= 3.5, dots = evs.map(function (e) { return { e: e, x: xOf(e.start), cy: 13, lab: false }; });
+    dots.forEach(function (d) {
+      var e = d.e, w = e.title.length * 6 + 14;
+      if ((showLabels && e.tier === 1) || e.id === S.sel) {
+        var clash = dots.some(function (o) { return o !== d && o.cy === d.cy && o.x > d.x - 8 && o.x < d.x + 10 + w; }) ||
+          labels.some(function (l) { return l.y === d.cy && d.x - 8 < l.x1 && d.x + 10 + w > l.x0; });
+        if (!clash || e.id === S.sel) { d.lab = true; labels.push({ y: d.cy, x0: d.x - 8, x1: d.x + 10 + w }); }
+      }
+    });
+    dots.forEach(function (d) { html += evHtml(d.e, d.x - 6, d.cy - 9, d.lab); pos[d.e.id] = { x: d.x, y: d.cy }; });
+  }
+  return { html: html, pos: pos, h: Math.max(top + pk.nrows * BH + 4, 40) };
 }
 function stepFor(P) { return [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000].find(function (s) { return s * P >= 70; }) || 2000; }
 function renderAxis() {
@@ -134,17 +140,35 @@ function linkPaths(pos) {
   linksOf(S.sel).forEach(function (id) { var b = pos[id]; if (!b) return; var mx = (a.x + b.x) / 2; s += '<path d="M' + a.x + ',' + a.y + ' C' + mx + ',' + (a.y - 34) + ' ' + mx + ',' + (b.y - 34) + ' ' + b.x + ',' + b.y + '"/>'; });
   return s;
 }
+function shownRegions() { return REG.filter(function (r) { return !S.hid[r.id]; }); }
+/* Lanes are laid out for the years on screen plus one screen either side, so rows aren't spent on empires far away.
+   Scrolling past that margin lays them out again. */
+var WIN = [MIN, MAX];
+function sizeCanvas() { $('#canvas').style.width = (GUT + (MAX - MIN) * S.P + 30) + 'px'; }
+function viewYears() { var sc = $('#sc'), Wd = sc.clientWidth; return [(sc.scrollLeft - GUT) / S.P + MIN, (sc.scrollLeft + Wd - GUT) / S.P + MIN]; }
 function renderTL() {
-  var P = S.P, xOf = function (y) { return GUT + (y - MIN) * P; };
+  var P = S.P, xOf = function (y) { return GUT + (y - MIN) * P; }, sc = $('#sc');
+  sizeCanvas();
+  var v = viewYears(), wd = v[1] - v[0]; WIN = [v[0] - wd, v[1] + wd];
   linkSet = new Set(S.sel ? linksOf(S.sel) : []);
-  var items = allItems().filter(visible), top = 0, html = '', pos = {};
-  REG.forEach(function (r) {
-    var L = layoutLane(items.filter(function (i) { return i.region === r.id; }), xOf);
+  var inWin = function (i) { return i.id === S.sel || linkSet.has(i.id) || (i.type === 'emp' ? i.end >= WIN[0] && i.start <= WIN[1] : i.start >= WIN[0] && i.start <= WIN[1]); };
+  var items = allItems().filter(function (i) { return visible(i) && inWin(i); }), top = 0, html = '', pos = {}, regs = shownRegions();
+  var packs = regs.map(function (r) { return packLane(items.filter(function (i) { return i.region === r.id; }), xOf); });
+  /* Row height fits the screen: one region gets tall, readable bars; the whole world gets slimmer ones. */
+  var rowsTotal = packs.reduce(function (n, pk) { return n + pk.nrows; }, 0) || 1;
+  var fixed = regs.length * ((S.ev ? 26 : 6) + 5), avail = (sc.clientHeight || 500) - 26 - 84 - fixed;
+  var BH = Math.round(Math.min(46, Math.max(19, avail / rowsTotal)));
+  var lanes = $('#lanes');
+  lanes.style.setProperty('--bh', (BH - 4) + 'px');
+  lanes.style.setProperty('--bf', (BH < 22 ? 10 : BH < 30 ? 11.5 : BH < 38 ? 13 : 14.5) + 'px');
+  regs.forEach(function (r, k) {
+    var L = layoutLane(packs[k], xOf, BH);
     html += '<div class="lane" style="height:' + L.h + 'px;--rc:var(--r-' + r.id + ')"><div class="lname">' + esc(r.short) + '</div>' + L.html + '</div>';
     Object.keys(L.pos).forEach(function (id) { pos[id] = { x: L.pos[id].x, y: top + L.pos[id].y }; });
     top += L.h + 1;
   });
-  var W = GUT + (MAX - MIN) * P + 30, step = stepFor(P), t0 = Math.ceil(MIN / step) * step, lanes = $('#lanes');
+  if (!regs.length) html = '<p class="hint" style="padding:16px">No regions selected. Tap World to show them all.</p>';
+  var W = GUT + (MAX - MIN) * P + 30, step = stepFor(P), t0 = Math.ceil(MIN / step) * step;
   $('#canvas').style.width = W + 'px';
   lanes.style.backgroundImage = 'linear-gradient(90deg,var(--grid) 1px,transparent 1px)';
   lanes.style.backgroundSize = (step * P) + 'px 100%';
@@ -153,21 +177,68 @@ function renderTL() {
   renderAxis();
 }
 function clampP(p) { var mn = ($('#sc').clientWidth - GUT) / (MAX - MIN); return Math.min(80, Math.max(mn, p)); }
-function setRange(a, b) { var sc = $('#sc'); S.P = clampP((sc.clientWidth - GUT) / (b - a)); renderTL(); sc.scrollLeft = (a - MIN) * S.P; renderAxis(); }
+function setRange(a, b) { var sc = $('#sc'); S.P = clampP((sc.clientWidth - GUT) / (b - a)); sizeCanvas(); sc.scrollLeft = (a - MIN) * S.P; renderTL(); }
 function zoom(f) {
   var sc = $('#sc'), Wd = sc.clientWidth, half = (Wd - GUT) / 2;
   var c = (sc.scrollLeft + half) / S.P + MIN;
-  S.P = clampP(S.P * f); renderTL(); sc.scrollLeft = (c - MIN) * S.P - half; renderAxis();
+  S.P = clampP(S.P * f); sizeCanvas(); sc.scrollLeft = (c - MIN) * S.P - half; renderTL();
 }
-function gotoYear(y) { var sc = $('#sc'); sc.scrollLeft = Math.max(0, (y - MIN) * S.P - (sc.clientWidth - GUT) / 2); renderAxis(); }
+/* Two-finger pinch on the timeline zooms time around the point between your fingers.
+   While fingers move the drawing is only stretched (re-drawing would drop the touch); it is laid out properly when they lift. */
+function initPinch() {
+  var sc = $('#sc'), cv = $('#canvas'), g = null, raf = 0;
+  function span(ts) { return Math.max(Math.abs(ts[0].clientX - ts[1].clientX), 30); }
+  function mid(ts) { return (ts[0].clientX + ts[1].clientX) / 2 - sc.getBoundingClientRect().left; }
+  function finish() {
+    if (!g) return; var G = g; g = null; cancelAnimationFrame(raf); raf = 0;
+    cv.style.transform = ''; cv.style.transformOrigin = '';
+    if (G.f === 1) return;
+    S.P = clampP(G.P * G.f); sizeCanvas();
+    sc.scrollLeft = GUT + (G.y - MIN) * S.P - G.m; renderTL();
+  }
+  sc.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 2) return;
+    var m = mid(e.touches); hidePop();
+    g = { d: span(e.touches), P: S.P, y: (m + sc.scrollLeft - GUT) / S.P + MIN, ox: sc.scrollLeft + m, m0: m, m: m, f: 1 };
+  }, { passive: true });
+  sc.addEventListener('touchmove', function (e) {
+    if (!g || e.touches.length !== 2) return;
+    e.preventDefault();
+    g.f = clampP(g.P * span(e.touches) / g.d) / g.P; g.m = mid(e.touches);
+    if (!raf) raf = requestAnimationFrame(function () {
+      raf = 0; if (!g) return;
+      cv.style.transformOrigin = g.ox + 'px 0';
+      cv.style.transform = 'translateX(' + (g.m - g.m0) + 'px) scaleX(' + g.f + ')';
+    });
+  }, { passive: false });
+  sc.addEventListener('touchend', function (e) { if (e.touches.length < 2) finish(); });
+  sc.addEventListener('touchcancel', finish);
+  document.addEventListener('gesturestart', function (e) { if (e.target.closest && e.target.closest('#sc')) e.preventDefault(); });
+}
+function gotoYear(y) { var sc = $('#sc'); sc.scrollLeft = Math.max(0, (y - MIN) * S.P - (sc.clientWidth - GUT) / 2); renderTL(); }
 function renderTB() {
   var pre = [['all', 'All'], ['ancient', 'Ancient'], ['med', 'Medieval'], ['early', '1500–1900'], ['mod', 'Modern']];
+  var all = !REG.some(function (r) { return S.hid[r.id]; });
   $('#tb').innerHTML = pre.map(function (p) { return '<button class="chip" data-pre="' + p[0] + '">' + p[1] + '</button>'; }).join('') +
-    '<button class="chip" data-act="zo" aria-label="Zoom out">−</button><button class="chip" data-act="zi" aria-label="Zoom in">+</button>' +
-    '<button class="chip" data-act="tier" aria-pressed="' + (S.tier === 1) + '">Key events only</button>' +
+    '<button class="chip" data-act="ev" aria-pressed="' + S.ev + '">Events</button>' +
+    (S.ev ? '<button class="chip" data-act="tier" aria-pressed="' + (S.tier === 1) + '">Key events only</button>' : '') +
     '<button class="chip" data-act="emp" aria-pressed="' + S.emp + '">Empires and eras</button>' +
     '<select id="cf" aria-label="Filter by country">' + countryOptions(S.cf, 'All countries') + '</select>';
+  $('#tb2').innerHTML = '<button class="chip" data-reg="all" aria-pressed="' + all + '">World</button>' +
+    REG.map(function (r) { return '<button class="chip rg" data-reg="' + r.id + '" style="--rc:var(--r-' + r.id + ')" aria-pressed="' + (!all && !S.hid[r.id]) + '">' + esc(r.short) + '</button>'; }).join('');
 }
+/* Tapping a region while the whole world is shown focuses on it; after that, taps add or remove regions. */
+function tapRegion(id) {
+  var all = !REG.some(function (r) { return S.hid[r.id]; });
+  if (id === 'all') S.hid = {};
+  else if (all) { S.hid = {}; REG.forEach(function (r) { if (r.id !== id) S.hid[r.id] = true; }); }
+  else { S.hid[id] = !S.hid[id]; if (!S.hid[id]) delete S.hid[id]; if (REG.every(function (r) { return S.hid[r.id]; })) S.hid = {}; }
+  saveUI(); renderTB(); renderTL();
+}
+var UIK = 'atlas.ui';
+function saveUI() { try { localStorage.setItem(UIK, JSON.stringify({ hid: S.hid, ev: S.ev, emp: S.emp, tier: S.tier })); } catch (e) {} }
+function loadUI() { try { var o = JSON.parse(localStorage.getItem(UIK) || '{}'); if (o.hid) S.hid = o.hid; if (typeof o.ev === 'boolean') S.ev = o.ev; if (typeof o.emp === 'boolean') S.emp = o.emp; if (o.tier) S.tier = o.tier; } catch (e) {} }
+function showForItem(it) { if (!it) return; var ch = false; if (it.region && S.hid[it.region]) { delete S.hid[it.region]; ch = true; } if (it.type === 'evt' && !S.ev) { S.ev = true; ch = true; } if (it.type === 'emp' && !S.emp) { S.emp = true; ch = true; } if (ch) { saveUI(); renderTB(); } }
 var PRE = { all: [MIN, MAX], ancient: [-3500, 500], med: [500, 1500], early: [1500, 1900], mod: [1900, 2030] };
 
 /* ---------- detail sheet ---------- */
@@ -314,7 +385,7 @@ function cardsFor(it) {
   if (it.type === 'evt') {
     out.push({ id: it.id, k: 'w', q: 'When did this happen?', big: it.title, sub: fl, a: '<b>' + esc(fy(it.start)) + '</b> · ' + era(it.start), a2: it.why + (it.who ? ' Involved: ' + it.who : '') });
     if (it.who) out.push({ id: it.id, k: 'h', q: 'Who or what was involved?', big: it.title, sub: fl + ' · ' + fy(it.start), a: esc(it.who), a2: it.why });
-    if (it.tier === 1) out.push({ id: it.id, k: 'y', q: 'What happened in ' + it.country + ' in ' + fy(it.start) + '?', big: '', sub: '', a: '<b>' + esc(it.title) + '</b>', a2: it.why });
+    if (it.tier === 1) out.push({ id: it.id, k: 'y', q: 'What happened in ' + (it.country || (REG.find(function (r) { return r.id === it.region; }) || {}).name) + ' in ' + fy(it.start) + '?', big: '', sub: '', a: '<b>' + esc(it.title) + '</b>', a2: it.why });
   } else if (it.type === 'emp') out.push({ id: it.id, k: 'w', q: 'When was this?', big: it.title, sub: '', a: '<b>' + esc(yearLine(it)) + '</b>', a2: it.why });
   else if (it.type === 'ppl') out.push({ id: it.id, k: 'p', q: 'Who was this person?', big: it.title, sub: fl, a: '<b>' + esc(yearLine(it)) + '</b>', a2: it.why });
   else if (it.type === 'plc') out.push({ id: it.id, k: 'l', q: 'What is this place known for?', big: it.title, sub: fl, a: esc(it.why), a2: '' });
@@ -386,12 +457,12 @@ function readYear(id, opt) {
 }
 function renderAD() {
   var v = $('#v-ad'), a = S.add || { type: 'evt', country: '', region: 'eu', tier: 1 }; S.add = a;
-  var t = a.type, needCountry = t === 'evt' || t === 'plc';
+  var t = a.type;
   v.innerHTML = '<div class="pad"><h2>' + (S.edit ? 'Edit entry' : 'Add to the atlas') + '</h2>' +
-    '<label for="f-type">What are you adding?</label><select id="f-type"><option value="evt"' + (t === 'evt' ? ' selected' : '') + '>Event (a moment)</option><option value="emp"' + (t === 'emp' ? ' selected' : '') + '>Span (empire, era or war)</option><option value="ppl"' + (t === 'ppl' ? ' selected' : '') + '>Person</option><option value="plc"' + (t === 'plc' ? ' selected' : '') + '>Place</option></select>' +
+    '<label for="f-type">What are you adding?</label><select id="f-type"><option value="evt"' + (t === 'evt' ? ' selected' : '') + '>Event (a moment)</option><option value="emp"' + (t === 'emp' ? ' selected' : '') + '>Empire, era or war (a span)</option><option value="ppl"' + (t === 'ppl' ? ' selected' : '') + '>Person</option><option value="plc"' + (t === 'plc' ? ' selected' : '') + '>Place</option></select>' +
     '<label for="f-title">' + (t === 'ppl' ? 'Name' : 'Title') + '</label><input id="f-title" type="text" value="' + esc(a.title || '') + '" autocomplete="off">' +
-    '<label for="f-country">Country' + (needCountry ? '' : ' (optional)') + '</label><select id="f-country">' + countryOptions(a.country, needCountry ? 'Choose a country' : 'No country') + '</select>' +
-    (t === 'emp' ? '<label for="f-region">Region (used when no country is chosen)</label><select id="f-region">' + REG.map(function (r) { return '<option value="' + r.id + '"' + (a.region === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select>' : '') +
+    '<label for="f-country">Country (optional)</label><select id="f-country">' + countryOptions(a.country, 'No country (e.g. Assyria, the Silk Road)') + '</select>' +
+    '<div id="f-regwrap"' + (a.country ? ' hidden' : '') + '><label for="f-region">Region (which timeline row it goes on)</label><select id="f-region">' + REG.map(function (r) { return '<option value="' + r.id + '"' + (a.region === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select></div>' +
     (t === 'evt' ? yearField('f-y1', 'Year', a.start) : '') + (t === 'emp' ? yearField('f-y1', 'Start year', a.start) + yearField('f-y2', 'End year', a.end) : '') + (t === 'ppl' ? yearField('f-y1', 'Born', a.start) + yearField('f-y2', 'Died (leave blank if unknown or alive)', a.end) : '') +
     '<label for="f-why">' + (t === 'plc' ? 'What it is known for' : t === 'ppl' ? 'Who they were' : 'Why it matters') + '</label><textarea id="f-why" style="min-height:70px">' + esc(a.why || '') + '</textarea>' +
     (t === 'evt' ? '<label for="f-who">Who or what was involved</label><input id="f-who" type="text" value="' + esc(a.who || '') + '">' + '<label for="f-tier">How important</label><select id="f-tier"><option value="1"' + (a.tier === 1 ? ' selected' : '') + '>Key event</option><option value="2"' + (a.tier === 2 ? ' selected' : '') + '>Detail</option></select>' : '') +
@@ -418,17 +489,17 @@ function saveEntry() {
   var t = $('#f-type').value, title = $('#f-title').value.trim(), country = $('#f-country').value, err = $('#f-err');
   var c = { type: t, title: title, country: country, why: $('#f-why').value.trim(), tier: 1, who: '', start: null, end: null, region: '' };
   if (!title) { err.textContent = 'Add a title.'; return; }
-  if ((t === 'evt' || t === 'plc') && !country) { err.textContent = 'Choose a country.'; return; }
-  c.region = country ? REGOF[country] : ($('#f-region') ? $('#f-region').value : (t === 'ppl' ? 'eu' : 'eu'));
+  c.region = country ? REGOF[country] : $('#f-region').value;
   if (t === 'evt') { c.start = readYear('f-y1'); c.who = $('#f-who').value.trim(); c.tier = parseInt($('#f-tier').value, 10); }
   if (t === 'emp' || t === 'ppl') { c.start = readYear('f-y1'); c.end = readYear('f-y2', true); }
   if (t !== 'plc' && (c.start == null || isNaN(c.start))) { err.textContent = 'Enter a valid year.'; return; }
   if (t !== 'plc' && (c.start < MIN || c.start > MAX)) { err.textContent = 'The timeline runs from 3500 BCE to 2030.'; return; }
   if (t === 'emp' && (c.end == null || isNaN(c.end) || c.end < c.start)) { err.textContent = 'Enter an end year after the start.'; return; }
+  if (t === 'ppl' && c.end != null && (isNaN(c.end) || c.end < c.start)) { err.textContent = 'The year they died must be after they were born.'; return; }
   var id = S.edit || ('u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
   upd(id, function (d) { d.c = c; });
   S.edit = null; S.add = null; toast('Saved');
-  if (t === 'evt' || t === 'emp') { go('tl'); if (S.P < 3 && t === 'evt') setRange(c.start - 70, c.start + 70); openSheet(id); gotoYear(c.start); }
+  if (t === 'evt' || t === 'emp') { go('tl'); showForItem(c); if (S.P < 3 && t === 'evt') setRange(c.start - 70, c.start + 70); openSheet(id); gotoYear(c.start); }
   else { S.pp = t; go('pp'); openSheet(id); }
 }
 
@@ -442,7 +513,7 @@ function go(tab) { hidePop();
   S.sel = null; $('#sheet').classList.remove('on'); S.tab = tab;
   ['tl', 'co', 'pp', 'rv', 'ad'].forEach(function (t) { $('#v-' + t).classList.toggle('on', t === tab); });
   document.querySelectorAll('#nav button').forEach(function (b) { b.setAttribute('aria-current', b.dataset.tab === tab ? 'true' : 'false'); });
-  if (tab === 'ad' && !S.edit && !S.add) S.add = null;
+  if (tab !== 'ad' && S.edit) { S.edit = null; S.add = null; }
   renderCurrent();
 }
 function cycleRead(id) { upd(id, function (d) { d.r = ((d.r || 0) + 1) % 3; }); renderCurrent(); if ($('#sheet').classList.contains('on')) renderSheet(); }
@@ -469,6 +540,7 @@ function onClick(e) {
   var t = e.target, el;
   if ((el = t.closest('[data-rd]'))) { e.stopPropagation(); cycleRead(el.dataset.rd); return; }
   if ((el = t.closest('[data-tab]'))) { go(el.dataset.tab); return; }
+  if ((el = t.closest('[data-reg]'))) { tapRegion(el.dataset.reg); return; }
   if ((el = t.closest('[data-pre]'))) { var r = PRE[el.dataset.pre]; setRange(r[0], r[1]); return; }
   if ((el = t.closest('[data-act="export"]'))) { exportBackup(); return; }
   if ((el = t.closest('[data-act="import"]'))) { $('#imp').click(); return; }
@@ -490,10 +562,11 @@ function onClick(e) {
     var a = el.dataset.act;
     if (a === 'close') closeSheet();
     else if (a === 'zi') zoom(1.6); else if (a === 'zo') zoom(1 / 1.6);
-    else if (a === 'tier') { S.tier = S.tier === 1 ? 2 : 1; renderTB(); renderTL(); }
-    else if (a === 'emp') { S.emp = !S.emp; renderTB(); renderTL(); }
+    else if (a === 'tier') { S.tier = S.tier === 1 ? 2 : 1; saveUI(); renderTB(); renderTL(); }
+    else if (a === 'emp') { S.emp = !S.emp; saveUI(); renderTB(); renderTL(); }
+    else if (a === 'ev') { S.ev = !S.ev; saveUI(); renderTB(); renderTL(); }
     else if (a === 'linkopen') { S.lkOpen = true; renderSheet(); var q = $('#lq'); if (q) q.focus(); }
-    else if (a === 'ontl') { var it2 = getItem(S.sel); go('tl'); if (it2) { if (S.P < 3 && it2.type === 'evt') setRange(it2.start - 70, it2.start + 70); renderTL(); gotoYear(it2.start); } }
+    else if (a === 'ontl') { var it2 = getItem(S.sel); go('tl'); showForItem(it2); if (it2) { if (S.P < 3 && it2.type === 'evt') setRange(it2.start - 70, it2.start + 70); renderTL(); gotoYear(it2.start); } }
     else if (a === 'coback') { S.pc = null; renderCO(); }
     else if (a === 'addhere') { S.edit = null; S.add = { type: 'evt', country: S.pc, region: REGOF[S.pc], tier: 1 }; go('ad'); }
     else if (a === 'addpp') { S.edit = null; S.add = { type: S.pp, country: '', region: 'eu', tier: 1 }; go('ad'); }
@@ -528,14 +601,22 @@ function onChange(e) {
   if (t.id === 'imp') { if (t.files && t.files[0]) importBackup(t.files[0]); t.value = ''; }
   else if (t.id === 'cf') { S.cf = t.value; renderTL(); }
   else if (t.id === 'rv-scope') { S.rvset.scope = t.value; renderRV(); }
-  else if (t.id === 'f-type') { var a = S.add || {}; a.type = t.value; if ($('#f-title')) { a.title = $('#f-title').value; a.why = $('#f-why').value; a.country = $('#f-country').value; } S.add = a; renderAD(); }
+  else if (t.id === 'f-type') {
+    var a = S.add || {}; a.type = t.value;
+    a.title = $('#f-title').value; a.why = $('#f-why').value; a.country = $('#f-country').value; a.region = $('#f-region').value;
+    if ($('#f-y1')) a.start = readYear('f-y1', true); if ($('#f-y2')) a.end = readYear('f-y2', true);
+    if ($('#f-who')) a.who = $('#f-who').value; if ($('#f-tier')) a.tier = parseInt($('#f-tier').value, 10);
+    S.add = a; renderAD();
+  }
+  else if (t.id === 'f-country') { var w = $('#f-regwrap'); if (w) w.hidden = !!t.value; if (t.value) $('#f-region').value = REGOF[t.value]; }
 }
 function init() {
-  loadLocal(); renderTB();
+  loadLocal(); loadUI(); renderTB();
   document.addEventListener('click', onClick); document.addEventListener('input', onInput); document.addEventListener('change', onChange);
   document.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.li[role=button]')) { e.preventDefault(); e.target.click(); } });
-  var raf = 0; $('#sc').addEventListener('scroll', function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; renderAxis(); }); });
+  var raf = 0; $('#sc').addEventListener('scroll', function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; var v = viewYears(); if (v[0] < WIN[0] || v[1] > WIN[1]) renderTL(); else renderAxis(); }); });
   window.addEventListener('resize', function () { if (S.tab === 'tl') { S.P = clampP(S.P); renderTL(); } });
+  initPinch();
   setRange(1500, 1900);
   initSync();
   window.__atlas = { S: S, go: go, openSheet: openSheet };
