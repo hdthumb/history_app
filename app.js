@@ -53,10 +53,13 @@ function initSync() {
 /* ---------- items and links ---------- */
 function customItems() {
   var out = [];
-  S.docs.forEach(function (d, id) { if (d && d.c) { var c = d.c; out.push({ id: id, type: c.type, region: c.region, country: c.country || '', countries: c.countries || (c.country ? [c.country] : []), area: c.area || '', start: c.start, end: c.end == null ? null : c.end, title: c.title, why: c.why || '', tier: c.tier || 1, who: c.who || '', custom: true }); } });
+  S.docs.forEach(function (d, id) { if (d && d.c && d.c.type !== 'area') { var c = d.c; out.push({ id: id, type: c.type, region: c.region, country: c.country || '', countries: c.countries || (c.country ? [c.country] : []), area: c.area || '', start: c.start, end: c.end == null ? null : c.end, title: c.title, why: c.why || '', tier: c.tier || 1, who: c.who || '', custom: true }); } });
   return out;
 }
 function allItems() { return SEED.concat(customItems()); }
+function customAreas() { var out = []; S.docs.forEach(function (d, id) { if (d && d.c && d.c.type === 'area') out.push({ id: id, name: d.c.title, region: d.c.region, countries: d.c.countries || [], why: d.c.why || '', custom: true }); }); return out; }
+function areaList() { return AREAS.map(function (a) { return AREAMAP[a[0]]; }).concat(customAreas()).sort(function (a, b) { return a.name.localeCompare(b.name); }); }
+function areaGet(n) { return AREAMAP[n] || customAreas().find(function (a) { return a.name === n; }); }
 function getItem(id) { return SEEDMAP[id] || customItems().find(function (i) { return i.id === id; }); }
 function doc(id) { return S.docs.get(id) || {}; }
 function linksOf(id) {
@@ -73,7 +76,7 @@ function yearLine(it) {
 }
 function regName(id) { return (REG.find(function (r) { return r.id === id; }) || {}).name || ''; }
 function whereOf(it) {
-  var cs = it.countries || [], A = it.area && AREAMAP[it.area];
+  var cs = it.countries || [], A = it.area && areaGet(it.area);
   if (it.area) { var same = A && cs.length === A.countries.length && A.countries.every(function (c) { return cs.indexOf(c) > -1; }); return it.area + (cs.length && !same ? ' (' + cs.join(', ') + ')' : ''); }
   return cs.length ? cs.join(', ') : regName(it.region);
 }
@@ -275,7 +278,7 @@ function renderSheet() {
     (it.who ? '<p class="who"><b>Involved:</b> ' + esc(it.who) + '</p>' : '') +
     '<div class="row" style="margin:8px 0"><button class="btn sm" data-rd="' + it.id + '">' + RDI[d.r || 0] + ' ' + RD[d.r || 0] + '</button>' +
     (it.type === 'evt' || it.type === 'emp' ? '<button class="btn sm" data-act="ontl">Show on timeline</button>' : '') +
-    (it.type === 'todo' && it.area && AREAMAP[it.area] ? '<button class="btn sm" data-area="' + esc(it.area) + '">📍 ' + esc(it.area) + '</button>' : '') +
+    (it.type === 'todo' && it.area && areaGet(it.area) ? '<button class="btn sm" data-area="' + esc(it.area) + '">📍 ' + esc(it.area) + '</button>' : '') +
     (it.type === 'todo' ? (it.countries || []).map(function (c) { return '<button class="btn sm" data-country="' + esc(c) + '">' + flagOf(c) + ' ' + esc(c) + '</button>'; }).join('') : it.country ? '<button class="btn sm" data-country="' + esc(it.country) + '">Country page</button>' : '') + '</div>' +
     (it.type === 'todo' ? '<p class="muted" style="font-size:12.5px;margin:4px 0 0">Once you know when it happened, tap Edit and change the type to Event or Span to put it on the timeline. Your notes and links come with it.</p>' : '') +
     '<label for="nt">Your notes</label><textarea id="nt" placeholder="What you read, what stuck, what to look up next">' + esc(d.n || '') + '</textarea>' +
@@ -296,9 +299,10 @@ function renderCO() {
   if (S.pc) return renderCountry(v);
   if (S.pa) return renderArea(v);
   var q = S.cq.trim().toLowerCase();
-  var ar = AREAS.filter(function (a) { return !q || a[0].toLowerCase().indexOf(q) > -1; });
+  var ar = areaList().filter(function (a) { return !q || a.name.toLowerCase().indexOf(q) > -1; });
   var h = '<div class="pad"><h2>Countries</h2><p class="muted" style="margin:0 0 8px;font-size:13px">Pick a country for its profile, reading list and notes.</p><input id="cq" type="search" placeholder="Search countries and regions, e.g. Kurdistan" value="' + esc(S.cq) + '" aria-label="Search countries and regions">' +
-    (ar.length ? '<div class="rgn" style="--rc:var(--accent)">Regions across borders</div><div class="lk-chips">' + ar.map(function (a) { return '<button class="lk-chip" data-area="' + esc(a[0]) + '">📍 ' + esc(a[0]) + ' <small>' + a[2].length + (a[2].length === 1 ? ' country' : ' countries') + '</small></button>'; }).join('') + '</div>' : '');
+    (ar.length ? '<div class="rgn" style="--rc:var(--accent)">Regions across borders</div><div class="lk-chips">' + ar.map(function (a) { return '<button class="lk-chip" data-area="' + esc(a.name) + '">📍 ' + esc(a.name) + ' <small>' + (a.custom ? 'yours · ' : '') + a.countries.length + (a.countries.length === 1 ? ' country' : ' countries') + '</small></button>'; }).join('') + '</div>' : '') +
+    (q ? '' : '<div class="row" style="margin-top:8px"><button class="btn sm" data-act="addarea">+ Add a region</button></div>');
   REG.forEach(function (r) {
     var cs = CO[r.id].filter(function (c) { return !q || c.toLowerCase().indexOf(q) > -1; });
     if (!cs.length) return;
@@ -310,13 +314,14 @@ function renderCO() {
   v.innerHTML = h + '</div>';
 }
 function renderArea(v) {
-  var A = AREAMAP[S.pa]; if (!A) { S.pa = null; return renderCO(); }
+  var A = areaGet(S.pa); if (!A) { S.pa = null; return renderCO(); }
   var tds = allItems().filter(function (i) { return i.type === 'todo' && i.area === A.name; });
   v.innerHTML = '<div class="pad"><button class="btn sm" data-act="coback">← All countries</button>' +
-    '<h2 style="margin-top:12px">📍 ' + esc(A.name) + '</h2><span class="tag" style="--rc:var(--r-' + A.region + ')">Region across borders · ' + esc(regName(A.region)) + '</span>' +
-    '<p class="why">' + esc(A.why) + '</p><p class="muted" style="font-size:12px">Borders of historical and cultural regions are fuzzy; these are the countries most of it lies in today.</p>' +
+    '<h2 style="margin-top:12px">📍 ' + esc(A.name) + '</h2><span class="tag" style="--rc:var(--r-' + A.region + ')">' + (A.custom ? 'Your region' : 'Region across borders') + ' · ' + esc(regName(A.region)) + '</span>' +
+    (A.why ? '<p class="why">' + esc(A.why) + '</p>' : '') + (A.custom ? '' : '<p class="muted" style="font-size:12px">Borders of historical and cultural regions are fuzzy; these are the countries most of it lies in today.</p>') +
     '<h3>Spans ' + A.countries.length + (A.countries.length === 1 ? ' country' : ' countries') + '</h3><div class="cgrid">' + A.countries.map(function (c) { return '<button class="cc" data-country="' + esc(c) + '"><span class="fl">' + flagOf(c) + '</span><span><b>' + esc(c) + '</b></span></button>'; }).join('') + '</div>' +
-    '<div class="row" style="margin:14px 0 4px"><button class="btn sm pri" data-act="todoarea">+ To read about ' + esc(A.name) + '</button></div>' +
+    '<div class="row" style="margin:14px 0 4px"><button class="btn sm pri" data-act="todoarea">+ To read about ' + esc(A.name) + '</button>' +
+    (A.custom ? '<button class="btn sm" data-act="editarea">Edit</button><button class="btn sm del" data-act="delarea">Delete region</button>' : '') + '</div>' +
     (tds.length ? '<h3>On your To read list</h3><div class="list">' + tds.map(function (e) { return rowHtml(e, true); }).join('') + '</div>' : '') + '</div>';
 }
 function eraGroups(evs) {
@@ -399,7 +404,7 @@ function wpHtml() {
   return '<div id="wp"><div id="wpchips">' + wpChips() + '</div><input id="wpq" type="search" placeholder="Where? A country or region, e.g. Kurdistan" aria-label="Tag a country or region" autocomplete="off"><div id="wpres" class="res"></div></div>';
 }
 function wpChips() {
-  var W = S.wp, A = W.area && AREAMAP[W.area], h = '';
+  var W = S.wp, A = W.area && areaGet(W.area), h = '';
   if (A) h += '<p class="wpinfo"><b>' + esc(A.name) + '</b>: ' + esc(A.why) + ' Tagged with the countries it spans today; remove any that don\'t apply.</p>';
   h += '<div class="lk-chips">' + (W.area ? '<span class="lk-chip">📍 ' + esc(W.area) + '<button class="x" data-wpx="a" aria-label="Remove ' + esc(W.area) + '">×</button></span>' : '') +
     W.countries.map(function (c) { return '<span class="lk-chip">' + flagOf(c) + ' ' + esc(c) + '<button class="x" data-wpx="c" data-v="' + esc(c) + '" aria-label="Remove ' + esc(c) + '">×</button></span>'; }).join('') + '</div>';
@@ -409,22 +414,22 @@ function wpSync() { if (S.tab === 'ad' && S.add) { S.add.area = S.wp.area; S.add
 function wpFill() {
   var box = wp$('#wpres'), q = (wp$('#wpq') || {}).value; if (!box) return;
   q = (q || '').trim().toLowerCase(); if (!q) { box.innerHTML = ''; return; }
-  var ar = AREAS.filter(function (a) { return a[0].toLowerCase().indexOf(q) > -1; }).slice(0, 4);
+  var ar = S.tab === 'ad' && S.add && S.add.type === 'area' ? [] : areaList().filter(function (a) { return a.name.toLowerCase().indexOf(q) > -1; }).slice(0, 4);
   var cs = Object.keys(REGOF).filter(function (c) { return c.toLowerCase().indexOf(q) > -1 && S.wp.countries.indexOf(c) < 0; }).slice(0, 6);
-  box.innerHTML = ar.map(function (a) { return '<button data-wpa="' + esc(a[0]) + '">📍 ' + esc(a[0]) + ' <span class="muted">· region: ' + esc(a[2].join(', ')) + '</span></button>'; }).join('') +
+  box.innerHTML = ar.map(function (a) { return '<button data-wpa="' + esc(a.name) + '">📍 ' + esc(a.name) + ' <span class="muted">· region: ' + esc(a.countries.join(', ')) + '</span></button>'; }).join('') +
     cs.map(function (c) { return '<button data-wpc="' + esc(c) + '">' + flagOf(c) + ' ' + esc(c) + '</button>'; }).join('') ||
-    '<span class="muted" style="font-size:13px;padding:6px 2px">No match. You can still mention it in the notes.</span>';
+    '<span class="muted" style="font-size:13px;padding:6px 2px">No match. You can add your own region from the Add tab.</span>';
 }
 function wpPick(el) {
   var W = S.wp;
-  if (el.dataset.wpa) { var A = AREAMAP[el.dataset.wpa]; W.area = A.name; A.countries.forEach(function (c) { if (W.countries.indexOf(c) < 0) W.countries.push(c); }); }
+  if (el.dataset.wpa) { var A = areaGet(el.dataset.wpa); W.area = A.name; A.countries.forEach(function (c) { if (W.countries.indexOf(c) < 0) W.countries.push(c); }); }
   else if (el.dataset.wpc) { if (W.countries.indexOf(el.dataset.wpc) < 0) W.countries.push(el.dataset.wpc); }
-  else if (el.dataset.wpx === 'a') { var B = AREAMAP[W.area]; if (B) W.countries = W.countries.filter(function (c) { return B.countries.indexOf(c) < 0; }); W.area = ''; }
+  else if (el.dataset.wpx === 'a') { var B = areaGet(W.area); if (B) W.countries = W.countries.filter(function (c) { return B.countries.indexOf(c) < 0; }); W.area = ''; }
   else if (el.dataset.wpx === 'c') W.countries = W.countries.filter(function (c) { return c !== el.dataset.v; });
   var q = wp$('#wpq'); if (q && !el.dataset.wpx) { q.value = ''; q.focus(); }
   wpFill(); wpSync();
 }
-function wpRegion() { var W = S.wp; return W.area ? AREAMAP[W.area].region : W.countries.length ? REGOF[W.countries[0]] : ''; }
+function wpRegion() { var W = S.wp; return W.area ? areaGet(W.area).region : W.countries.length ? REGOF[W.countries[0]] : ''; }
 
 /* ---------- people and places ---------- */
 function renderPP() {
@@ -434,9 +439,9 @@ function renderPP() {
   list.sort(function (a, b) { return S.pp === 'ppl' ? a.start - b.start : td ? ((doc(a.id).r === 2) - (doc(b.id).r === 2)) || (a.id < b.id ? 1 : -1) : a.title.localeCompare(b.title); });
   var seg = '<div class="seg"><button data-pp="ppl" aria-pressed="' + (S.pp === 'ppl') + '">People</button><button data-pp="plc" aria-pressed="' + (S.pp === 'plc') + '">Places</button><button data-pp="todo" aria-pressed="' + td + '">To read</button></div>';
   v.innerHTML = '<div class="pad"><h2>Lists</h2><div class="row" style="margin-bottom:8px">' + seg + (td ? '' : '<button class="btn sm pri" data-act="addpp">Add</button>') + '</div>' +
-    (td ? '<p class="muted" style="margin:4px 0 8px;font-size:13px">Topics you want to look into. No date or country needed.</p><div class="card" style="min-height:0;padding:12px;margin:0 0 12px"><input id="tdq" type="text" placeholder="Topic, e.g. The Yazidis" aria-label="New topic to read about" autocomplete="off" value="' + esc(S.tdt) + '"><div style="margin-top:8px">' + wpHtml() + '</div><div class="row" style="margin-top:8px"><button class="btn pri" data-act="tdadd">Add to list</button></div></div>' : '') +
+    (td ? '<p class="muted" style="margin:4px 0 8px;font-size:13px">Topics you want to look into. No date or country needed. Tap the circle to mark progress: ○ to read, ◐ reading, ● read.</p><div class="card" style="min-height:0;padding:12px;margin:0 0 12px"><input id="tdq" type="text" placeholder="Topic, e.g. The Yazidis" aria-label="New topic to read about" autocomplete="off" value="' + esc(S.tdt) + '"><div style="margin-top:8px">' + wpHtml() + '</div><div class="row" style="margin-top:8px"><button class="btn pri" data-act="tdadd">Add to list</button></div></div>' : '') +
     '<input id="pq" type="search" placeholder="Search" value="' + esc(S.pq) + '" aria-label="Search"><div class="list">' + list.map(function (i) {
-      if (td) { var d = doc(i.id); return '<div class="li" role="button" tabindex="0" data-open="' + i.id + '"><button class="rs" data-rd="' + i.id + '" aria-label="Status: ' + RD[d.r || 0] + '">' + RDI[d.r || 0] + '</button><span><span class="t"' + (d.r === 2 ? ' style="text-decoration:line-through;color:var(--muted)"' : '') + '>' + esc(i.title) + '</span>' + (whereOf(i) ? ' <span class="s">' + esc(whereOf(i)) + '</span>' : '') + (i.why ? '<br><span class="s">' + esc(i.why) + '</span>' : '') + '</span></div>'; }
+      if (td) { var d = doc(i.id); return '<div class="li" role="button" tabindex="0" data-open="' + i.id + '"><button class="rs" data-rd="' + i.id + '" aria-label="Status: ' + RD[d.r || 0] + '">' + RDI[d.r || 0] + '</button><span><span class="t"' + (d.r === 2 ? ' style="text-decoration:line-through;color:var(--muted)"' : '') + '>' + esc(i.title) + '</span>' + (d.r === 1 ? ' <span class="pill">Reading</span>' : '') + (whereOf(i) ? ' <span class="s">' + esc(whereOf(i)) + '</span>' : '') + (i.why ? '<br><span class="s">' + esc(i.why) + '</span>' : '') + '</span></div>'; }
       return '<div class="li" role="button" tabindex="0" data-open="' + i.id + '"><span class="fl">' + flagOf(i.country) + '</span><span><span class="t">' + esc(i.title) + '</span> <span class="s">' + esc(i.type === 'ppl' ? yearLine(i) : i.country) + '</span><br><span class="s">' + esc(i.why) + '</span></span></div>';
     }).join('') + (td && !list.length && !q ? '<p class="muted">Nothing yet. Type a topic above, tag where it is if you know, and tap Add to list.</p>' : '') + '</div></div>';
 }
@@ -529,15 +534,16 @@ function readYear(id, opt) {
 function renderAD() {
   var v = $('#v-ad'), a = S.add || { type: 'evt', country: '', region: 'eu', tier: 1 }; S.add = a;
   var t = a.type;
-  if (t === 'todo') S.wp = { area: a.area || '', countries: (a.countries || (a.country ? [a.country] : [])).slice() };
+  if (t === 'todo' || t === 'area') S.wp = { area: t === 'todo' ? a.area || '' : '', countries: (a.countries || (a.country ? [a.country] : [])).slice() };
   v.innerHTML = '<div class="pad"><h2>' + (S.edit ? 'Edit entry' : 'Add to the atlas') + '</h2>' +
-    '<label for="f-type">What are you adding?</label><select id="f-type"><option value="evt"' + (t === 'evt' ? ' selected' : '') + '>Event (a moment)</option><option value="emp"' + (t === 'emp' ? ' selected' : '') + '>Empire, era or war (a span)</option><option value="ppl"' + (t === 'ppl' ? ' selected' : '') + '>Person</option><option value="plc"' + (t === 'plc' ? ' selected' : '') + '>Place</option><option value="todo"' + (t === 'todo' ? ' selected' : '') + '>Topic to read about (no date needed)</option></select>' +
-    '<label for="f-title">' + (t === 'ppl' ? 'Name' : t === 'todo' ? 'Topic' : 'Title') + '</label><input id="f-title" type="text" value="' + esc(a.title || '') + '" autocomplete="off">' +
-    (t === 'todo' ? '<label for="wpq">Where (optional): countries, or a region like Kurdistan that fills them in</label>' + wpHtml() :
+    '<label for="f-type">What are you adding?</label><select id="f-type"><option value="evt"' + (t === 'evt' ? ' selected' : '') + '>Event (a moment)</option><option value="emp"' + (t === 'emp' ? ' selected' : '') + '>Empire, era or war (a span)</option><option value="ppl"' + (t === 'ppl' ? ' selected' : '') + '>Person</option><option value="plc"' + (t === 'plc' ? ' selected' : '') + '>Place</option><option value="todo"' + (t === 'todo' ? ' selected' : '') + '>Topic to read about (no date needed)</option><option value="area"' + (t === 'area' ? ' selected' : '') + '>Region across borders (e.g. Melanesia)</option></select>' +
+    '<label for="f-title">' + (t === 'ppl' ? 'Name' : t === 'todo' ? 'Topic' : t === 'area' ? 'Region name' : 'Title') + '</label><input id="f-title" type="text" value="' + esc(a.title || '') + '" autocomplete="off">' +
+    (t === 'area' ? '<label for="wpq">Countries it spans (type to add each one)</label>' + wpHtml() :
+    t === 'todo' ? '<label for="wpq">Where (optional): countries, or a region like Kurdistan that fills them in</label>' + wpHtml() :
     '<label for="f-country">Country (optional)</label><select id="f-country">' + countryOptions(a.country, 'No country (e.g. Assyria, the Silk Road)') + '</select>') +
-    '<div id="f-regwrap"' + (a.country || t === 'todo' ? ' hidden' : '') + '><label for="f-region">' + (t === 'todo' ? 'Region (used when no country is chosen)' : 'Region (which timeline row it goes on)') + '</label><select id="f-region">' + REG.map(function (r) { return '<option value="' + r.id + '"' + (a.region === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select></div>' +
+    '<div id="f-regwrap"' + (a.country || t === 'todo' || t === 'area' ? ' hidden' : '') + '><label for="f-region">' + (t === 'todo' ? 'Region (used when no country is chosen)' : 'Region (which timeline row it goes on)') + '</label><select id="f-region">' + REG.map(function (r) { return '<option value="' + r.id + '"' + (a.region === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select></div>' +
     (t === 'evt' ? yearField('f-y1', 'Year', a.start) : '') + (t === 'emp' ? yearField('f-y1', 'Start year', a.start) + yearField('f-y2', 'End year', a.end) : '') + (t === 'ppl' ? yearField('f-y1', 'Born', a.start) + yearField('f-y2', 'Died (leave blank if unknown or alive)', a.end) : '') +
-    '<label for="f-why">' + (t === 'plc' ? 'What it is known for' : t === 'ppl' ? 'Who they were' : t === 'todo' ? 'Notes (where you came across it, what to look into)' : 'Why it matters') + '</label><textarea id="f-why" style="min-height:70px">' + esc(a.why || '') + '</textarea>' +
+    '<label for="f-why">' + (t === 'plc' ? 'What it is known for' : t === 'ppl' ? 'Who they were' : t === 'todo' ? 'Notes (where you came across it, what to look into)' : t === 'area' ? 'What it is (optional)' : 'Why it matters') + '</label><textarea id="f-why" style="min-height:70px">' + esc(a.why || '') + '</textarea>' +
     (t === 'evt' ? '<label for="f-who">Who or what was involved</label><input id="f-who" type="text" value="' + esc(a.who || '') + '">' + '<label for="f-tier">How important</label><select id="f-tier"><option value="1"' + (a.tier === 1 ? ' selected' : '') + '>Key event</option><option value="2"' + (a.tier === 2 ? ' selected' : '') + '>Detail</option></select>' : '') +
     '<div id="f-err" class="err" role="alert"></div><div class="row" style="margin-top:16px"><button class="btn pri" data-act="save">Save</button>' + (S.edit ? '<button class="btn" data-act="cancel">Cancel</button>' : '') + '</div>' +
     '<p class="muted" style="font-size:12.5px;margin-top:16px">After saving you can add notes and link it to other events, people and places.</p>' +
@@ -558,8 +564,21 @@ function importBackup(file) {
   };
   rd.readAsText(file);
 }
+function saveArea(title, err) {
+  if (!title) { err.textContent = 'Give the region a name.'; return; }
+  var cs = S.wp.countries.slice(); if (!cs.length) { err.textContent = 'Add at least one country it spans.'; return; }
+  var old = S.edit && customAreas().find(function (a) { return a.id === S.edit; });
+  var clash = areaGet(title); if (clash && (!old || clash.id !== old.id)) { err.textContent = 'There is already a region called ' + title + '.'; return; }
+  var id = S.edit || ('u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
+  upd(id, function (d) { d.c = { type: 'area', title: title, countries: cs, region: REGOF[cs[0]], why: $('#f-why').value.trim() }; });
+  /* Renaming keeps topics tagged with the old name attached. */
+  if (old && old.name !== title) S.docs.forEach(function (d, k) { if (d && d.c && d.c.area === old.name) upd(k, function (x) { x.c.area = title; }); });
+  S.edit = null; S.add = null; toast('Region saved');
+  S.pc = null; S.pa = title; go('co'); $('#v-co').scrollTop = 0;
+}
 function saveEntry() {
   var t = $('#f-type').value, title = $('#f-title').value.trim(), err = $('#f-err');
+  if (t === 'area') return saveArea(title, err);
   var countries = t === 'todo' ? S.wp.countries.slice() : [];
   var country = t === 'todo' ? (countries[0] || '') : $('#f-country').value;
   var c = { type: t, title: title, country: country, why: $('#f-why').value.trim(), tier: 1, who: '', start: null, end: null, region: '' };
@@ -647,7 +666,10 @@ function onClick(e) {
     else if (a === 'linkopen') { S.lkOpen = true; renderSheet(); var q = $('#lq'); if (q) q.focus(); }
     else if (a === 'ontl') { var it2 = getItem(S.sel); go('tl'); showForItem(it2); if (it2) { if (S.P < 3 && it2.type === 'evt') setRange(it2.start - 70, it2.start + 70); renderTL(); gotoYear(it2.start); } }
     else if (a === 'coback') { if (S.pc) S.pc = null; else S.pa = null; renderCO(); $('#v-co').scrollTop = 0; }
-    else if (a === 'todoarea') { var A = AREAMAP[S.pa]; S.edit = null; S.add = { type: 'todo', area: A.name, countries: A.countries.slice(), country: A.countries[0], region: A.region, tier: 1 }; go('ad'); }
+    else if (a === 'addarea') { S.edit = null; S.add = { type: 'area', countries: [] }; go('ad'); }
+    else if (a === 'editarea') { var E = areaGet(S.pa); S.edit = E.id; S.add = { type: 'area', title: E.name, countries: E.countries.slice(), why: E.why }; go('ad'); }
+    else if (a === 'delarea') { if (el.dataset.sure) { var D = areaGet(S.pa); drop(D.id); S.pa = null; renderCO(); toast('Region deleted'); } else { el.dataset.sure = '1'; el.textContent = 'Tap again to delete'; } }
+    else if (a === 'todoarea') { var A = areaGet(S.pa); S.edit = null; S.add = { type: 'todo', area: A.name, countries: A.countries.slice(), country: A.countries[0], region: A.region, tier: 1 }; go('ad'); }
     else if (a === 'addhere') { S.edit = null; S.add = { type: 'evt', country: S.pc, region: REGOF[S.pc], tier: 1 }; go('ad'); }
     else if (a === 'tdadd') quickTodo();
     else if (a === 'todohere') { S.edit = null; S.add = { type: 'todo', country: S.pc, countries: [S.pc], area: '', region: REGOF[S.pc], tier: 1 }; go('ad'); }
@@ -676,6 +698,7 @@ function onInput(e) {
   else if (t.id === 'cnote') { var cid = 'cn-' + slug(S.pc), cv = t.value; clearTimeout(noteTimer); noteTimer = setTimeout(function () { upd(cid, function (d) { d.n = cv; }); }, 600); }
   else if (t.id === 'lq') { S.lkq = t.value; fillRes(); }
   else if (t.id === 'wpq') wpFill();
+  if (t.closest && t.closest('#v-ad') && $('#f-err')) $('#f-err').textContent = '';
   else if (t.id === 'tdq') S.tdt = t.value;
   else if (t.id === 'cq') { S.cq = t.value; var pos = t.selectionStart; renderCO(); var n = $('#cq'); n.focus(); n.setSelectionRange(pos, pos); }
   else if (t.id === 'pq') { S.pq = t.value; var pos2 = t.selectionStart; renderPP(); var n2 = $('#pq'); n2.focus(); n2.setSelectionRange(pos2, pos2); }
