@@ -1,14 +1,15 @@
 # Timeline Atlas
 
-A phone-first parallel timeline of world history with country profiles, people, places, a revise mode and your own notes and links. Static files only: no build step.
+A phone-first companion to reading world history: a parallel timeline of the world, a page for every country and for regions that cross borders, and a personal library of topics, books and notes. Static files only: no build step. Works offline once loaded.
+
+## Using it
+- **Timeline**: one lane per world region. Pick a period, pick one or more regions, pinch or use − / + to zoom, and drag the overview strip to jump through time. Filters hold the event and empire toggles, a country filter and a key to the bar styles. Tap anything for a summary, then Details and notes.
+- **Countries**: search, filter by region, recently viewed, reading progress. Each country has Overview, Timeline, People & places and My research. Regions across borders (Kurdistan, Mesopotamia…) have their own pages; you can add your own.
+- **Library**: Topics to explore (with questions inside each topic), Books, People and Places, plus search across everything including your notes.
+- **Review**: spaced-repetition flashcards from the atlas and your reading.
+- **＋** adds anything from any screen; it tags what you're looking at. **⚙︎** holds appearance and backup/restore.
+
+Your notes, links and additions live on the phone. Export a backup now and then from ⚙︎.
 
 ## Put it online with GitHub Pages
-1. Create a new GitHub repo (for example `timeline-atlas`) and upload everything in this folder to the top level.
-2. Repo Settings, Pages, Source: "Deploy from a branch", Branch: `main`, folder `/ (root)`. Save.
-3. After a minute the site is at `https://<your-username>.github.io/timeline-atlas/`.
-4. Open it on your phone and add it to your home screen (iPhone: Safari, Share, Add to Home Screen. Android: Chrome menu, Install app). Open it once with signal so it caches for offline use.
-
-## Notes
-- Your notes and added items are stored on the phone. Use Add, Backup, Export now and then, and Import to restore or move phones.
-- After changing any file, bump `VERSION` in `sw.js` so installed copies update.
-- Render works too (New, Static Site, publish directory `.`), but needs nothing extra for this app.
+Repo Settings → Pages → Deploy from a branch → `main`, folder `/ (root)`. After changing any file, bump `VERSION` in `sw.js` so installed copies update.
