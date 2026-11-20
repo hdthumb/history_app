@@ -203,7 +203,7 @@ function layoutLane(pk, xOf, BH) {
     });
     dots.forEach(function (d) { html += evHtml(d.e, d.x - 6, d.cy - 9, d.lab); pos[d.e.id] = { x: d.x, y: d.cy }; });
   }
-  return { html: html, pos: pos, h: Math.max(top + pk.nrows * BH + 4, 40) };
+  return { html: html, pos: pos, h: !pk.nrows && !(S.ev && pk.evs.length) ? 30 : Math.max(top + pk.nrows * BH + 8, 44) };
 }
 function stepFor(P) { return [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000].find(function (s) { return s * P >= 70; }) || 2000; }
 function renderAxis() {
@@ -211,21 +211,6 @@ function renderAxis() {
   var y0 = (sc.scrollLeft - GUT - Wd) / P + MIN, y1 = (sc.scrollLeft + 2 * Wd - GUT) / P + MIN;
   for (var y = Math.ceil(Math.max(MIN, y0) / step) * step; y <= Math.min(MAX, y1); y += step) h += '<span style="left:' + (GUT + (y - MIN) * P) + 'px">' + fy(y) + '</span>';
   $('#axis').innerHTML = h;
-  renderOverview();
-}
-/* Overview navigator: the whole 3500 BCE–2030 range in one strip, with the part on screen highlighted. Tap or drag to move. */
-function renderOverview() {
-  var ov = $('#ov'); if (!ov) return;
-  var v = viewYears(), span = MAX - MIN, a = Math.max(MIN, v[0]), b = Math.min(MAX, v[1]);
-  var w = $('#ovwin'); if (!w) { ov.innerHTML = [-3000, -2000, -1000, 0, 1000, 2000].map(function (y) { return '<span class="ovt" style="left:' + ((y - MIN) / span * 100) + '%">' + (y < 0 ? -y / 1000 + 'k BCE' : y === 0 ? '0' : y) + '</span>'; }).join('') + '<i id="ovwin"></i>'; w = $('#ovwin'); }
-  w.style.left = ((a - MIN) / span * 100) + '%'; w.style.width = Math.max(1.2, (b - a) / span * 100) + '%';
-}
-function initOverview() {
-  var ov = $('#ov'), drag = false;
-  function at(e) { var r = ov.getBoundingClientRect(); var f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); gotoYear(MIN + f * (MAX - MIN)); }
-  ov.addEventListener('pointerdown', function (e) { drag = true; hidePop(); try { ov.setPointerCapture(e.pointerId); } catch (x) {} at(e); });
-  ov.addEventListener('pointermove', function (e) { if (drag) at(e); });
-  ['pointerup', 'pointercancel'].forEach(function (n) { ov.addEventListener(n, function () { drag = false; }); });
 }
 function linkPaths(pos) {
   if (!S.sel || !pos[S.sel]) return '';
@@ -248,10 +233,10 @@ function renderTL() {
   var packs = regs.map(function (r) { return packLane(items.filter(function (i) { return i.region === r.id; }), xOf); });
   /* Row height fits the screen: one region gets tall, readable bars; the whole world gets slimmer ones. */
   var rowsTotal = packs.reduce(function (n, pk) { return n + pk.nrows; }, 0) || 1;
-  var fixed = regs.length * ((S.ev ? 26 : 6) + 5), avail = (sc.clientHeight || 500) - 26 - 84 - fixed;
-  var BH = Math.round(Math.min(46, Math.max(20, avail / rowsTotal)));
+  var fixed = regs.length * ((S.ev ? 26 : 6) + 9), avail = (sc.clientHeight || 500) - 26 - 84 - fixed;
+  var BH = Math.round(Math.min(38, Math.max(24, avail / rowsTotal)));
   var lanes = $('#lanes');
-  lanes.style.setProperty('--bh', (BH - 5) + 'px');
+  lanes.style.setProperty('--bh', (BH - 7) + 'px');
   lanes.style.setProperty('--bf', (BH < 23 ? 10.5 : BH < 30 ? 11.5 : BH < 38 ? 13 : 14.5) + 'px');
   regs.forEach(function (r, k) {
     var L = layoutLane(packs[k], xOf, BH);
@@ -314,8 +299,9 @@ function filterCount() { return (S.ev ? 0 : 1) + (S.ev && S.tier !== 1 ? 1 : 0) 
 function renderTB() {
   var pre = [['all', 'All'], ['ancient', 'Ancient'], ['med', 'Medieval'], ['early', '1500–1900'], ['mod', 'Modern']], cp = curPre(), fc = filterCount();
   var all = !REG.some(function (r) { return S.hid[r.id]; });
-  $('#tb').innerHTML = pre.map(function (p) { return '<button class="chip" data-pre="' + p[0] + '" aria-pressed="' + (cp === p[0]) + '">' + p[1] + '</button>'; }).join('') +
-    '<button class="chip fbtn" data-act="tf" aria-expanded="' + S.tfOpen + '">Filters' + (fc ? ' · ' + fc : '') + ' ▾</button>';
+  $('#tb').innerHTML = '<div class="tbs">' + pre.map(function (p) { return '<button class="chip" data-pre="' + p[0] + '" aria-pressed="' + (cp === p[0]) + '">' + p[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="tbfix"><button class="zb" data-act="zo" aria-label="Zoom out">−</button><button class="zb" data-act="zi" aria-label="Zoom in">+</button>' +
+    '<button class="chip fbtn' + (fc ? ' on' : '') + '" data-act="tf" aria-expanded="' + S.tfOpen + '" aria-label="Filters">Filters' + (fc ? ' · ' + fc : '') + '</button></div>';
   $('#tb2').innerHTML = '<button class="chip" data-reg="all" aria-pressed="' + all + '">World</button>' +
     REG.map(function (r) { return '<button class="chip rg" data-reg="' + r.id + '" style="--rc:var(--r-' + r.id + ')" aria-pressed="' + (!all && !S.hid[r.id]) + '">' + esc(r.short) + '</button>'; }).join('');
   var tf = $('#tf'); tf.hidden = !S.tfOpen;
@@ -485,26 +471,36 @@ function progress(c) {
 }
 function miniProg(p) { return p.n ? '<span class="mprog"><i style="width:' + Math.round(p.done / p.n * 100) + '%"></i></span><small>' + p.done + '/' + p.n + ' read</small>' : ''; }
 function countryCard(c) { return '<button class="cc" data-country="' + esc(c) + '"><span class="fl">' + flagOf(c) + '</span><span class="ccb"><b>' + esc(c) + '</b>' + miniProg(progress(c)) + '</span></button>'; }
+function countryRow(c) {
+  var p = progress(c);
+  return '<button class="crow" data-country="' + esc(c) + '"><span class="fl">' + flagOf(c) + '</span><span class="crn">' + esc(c) + '</span>' + (p.n ? '<span class="crp"><span class="mprog"><i style="width:' + Math.round(p.done / p.n * 100) + '%"></i></span><small>' + p.done + '/' + p.n + '</small></span>' : '') + '</button>';
+}
+function areaChips(list) { return '<div class="lk-chips">' + list.map(function (a) { return '<button class="lk-chip" data-area="' + esc(a.name) + '">📍 ' + esc(a.name) + (a.custom ? ' <small>yours</small>' : '') + '</button>'; }).join('') + '</div>'; }
+/* Countries opens on eight region tiles; picking one (tile or dropdown) shows just that region. */
 function renderCO() {
   var v = $('#v-co');
   if (S.pc) return renderCountry(v);
   if (S.pa) return renderArea(v);
-  var q = S.cq.trim().toLowerCase(), fr = S.creg;
-  var recentC = S.recent.filter(function (r) { return r.k === 'c' && PROF[r.id]; }).slice(0, 6);
-  var tot = { n: 0, d: 0 }; Object.keys(REGOF).forEach(function (c) { var p = progress(c); tot.n += p.n; tot.d += p.done; });
-  var h = '<div class="pad"><h2>Countries</h2><p class="muted small" style="margin:0 0 8px">' + Object.keys(REGOF).length + ' countries and ' + areaList().length + ' regions across borders. You’ve read <b>' + tot.d + '</b> of ' + tot.n + ' key events.</p>' +
-    '<input id="cq" type="search" placeholder="Search countries and regions, e.g. Kurdistan" value="' + esc(S.cq) + '" aria-label="Search countries and regions">' +
-    '<div class="tb flush"><button class="chip" data-creg="" aria-pressed="' + (!fr) + '">All</button><button class="chip" data-creg="areas" aria-pressed="' + (fr === 'areas') + '">📍 Regions</button>' + REG.map(function (r) { return '<button class="chip rg" style="--rc:var(--r-' + r.id + ')" data-creg="' + r.id + '" aria-pressed="' + (fr === r.id) + '">' + esc(r.short) + '</button>'; }).join('') + '</div>';
-  if (!q && !fr && recentC.length) h += '<h3>Recently viewed</h3><div class="cgrid">' + recentC.map(function (r) { return countryCard(r.id); }).join('') + '</div>';
-  var ar = areaList().filter(function (a) { return (!q || a.name.toLowerCase().indexOf(q) > -1) && (!fr || fr === 'areas' || a.region === fr); });
-  if (ar.length && (fr === 'areas' || q || !fr)) h += '<div class="rgn" style="--rc:var(--accent)">Regions across borders</div><div class="lk-chips">' + ar.map(function (a) { return '<button class="lk-chip" data-area="' + esc(a.name) + '">📍 ' + esc(a.name) + ' <small>' + (a.custom ? 'yours · ' : '') + a.countries.length + (a.countries.length === 1 ? ' country' : ' countries') + '</small></button>'; }).join('') + '</div>' +
-    (q ? '' : '<div class="row mt6"><button class="btn sm" data-act="addarea">＋ Add a region</button></div>');
-  if (fr !== 'areas') REG.forEach(function (r) {
-    if (fr && fr !== r.id) return;
-    var cs = CO[r.id].filter(function (c) { return !q || c.toLowerCase().indexOf(q) > -1; });
-    if (!cs.length) return;
-    h += '<div class="rgn" style="--rc:var(--r-' + r.id + ')">' + esc(r.name) + '</div><div class="cgrid">' + cs.map(countryCard).join('') + '</div>';
-  });
+  var q = S.cq.trim().toLowerCase(), fr = S.creg, h = '<div class="pad">';
+  var recentC = S.recent.filter(function (r) { return r.k === 'c' && PROF[r.id]; }).slice(0, 4);
+  h += '<div class="cohead"><h2>Countries</h2><select id="creg" aria-label="Choose a part of the world"><option value="">All regions</option>' + REG.map(function (r) { return '<option value="' + r.id + '"' + (fr === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select></div>' +
+    '<input id="cq" type="search" placeholder="Search any country or region" value="' + esc(S.cq) + '" aria-label="Search countries and regions">';
+  if (q) {
+    var ar = areaList().filter(function (a) { return a.name.toLowerCase().indexOf(q) > -1; }), cs = Object.keys(REGOF).filter(function (c) { return c.toLowerCase().indexOf(q) > -1; }).sort();
+    h += (ar.length ? '<h3>Regions across borders</h3>' + areaChips(ar) : '') + (cs.length ? '<h3>Countries</h3><div class="clist">' + cs.map(countryRow).join('') + '</div>' : '') + (!ar.length && !cs.length ? '<p class="muted">Nothing called “' + esc(S.cq) + '”.</p>' : '');
+  } else if (!fr) {
+    if (recentC.length) h += '<h3>Recently viewed</h3><div class="clist">' + recentC.map(function (r) { return countryRow(r.id); }).join('') + '</div>';
+    h += '<h3>Parts of the world</h3><div class="tiles">' + REG.map(function (r) {
+      var tot = { n: 0, d: 0 }; CO[r.id].forEach(function (c) { var p = progress(c); tot.n += p.n; tot.d += p.done; });
+      var na = areaList().filter(function (a) { return a.region === r.id; }).length;
+      return '<button class="tile" data-creg="' + r.id + '" style="--rc:var(--r-' + r.id + ')"><b>' + esc(r.name) + '</b><small>' + CO[r.id].length + ' countries' + (na ? ' · ' + na + ' regions' : '') + '</small>' + (tot.d ? '<small>' + tot.d + ' of ' + tot.n + ' key events read</small>' : '') + '</button>';
+    }).join('') + '</div><div class="row mt6"><button class="btn sm" data-act="addarea">＋ Add your own region</button></div>';
+  } else {
+    var reg = REG.find(function (r) { return r.id === fr; }), ars = areaList().filter(function (a) { return a.region === fr; });
+    h += '<div class="rhead" style="--rc:var(--r-' + fr + ')"><button class="btn sm" data-creg="">← All</button><b>' + esc(reg.name) + '</b></div>' +
+      (ars.length ? '<h3>Regions across borders</h3>' + areaChips(ars) : '') +
+      '<h3>Countries · ' + CO[fr].length + '</h3><div class="clist">' + CO[fr].map(countryRow).join('') + '</div>';
+  }
   v.innerHTML = h + '</div>';
 }
 function eraGroups(evs) {
@@ -1000,7 +996,7 @@ function onClick(e) {
   }
   if ((el = t.closest('[data-country]'))) { openCountry(el.dataset.country); return; }
   if ((el = t.closest('[data-lib]'))) { S.lib = el.dataset.lib; S.wp = { area: '', countries: [] }; renderLib(); return; }
-  if ((el = t.closest('[data-creg]'))) { S.creg = el.dataset.creg; renderCO(); return; }
+  if ((el = t.closest('[data-creg]'))) { S.creg = el.dataset.creg; S.cq = ''; renderCO(); $('#v-co').scrollTop = 0; return; }
   if ((el = t.closest('[data-ctab]'))) { S.ctab = el.dataset.ctab; renderCO(); return; }
   if ((el = t.closest('[data-rvt]'))) { var k = el.dataset.rvt; if (k === 'detail') S.rvset.detail = !S.rvset.detail; else S.rvset.types[k] = !S.rvset.types[k]; renderRV(); return; }
   if ((el = t.closest('[data-rvq]'))) { var qk = el.dataset.rvq; S.rvset.q[qk] = S.rvset.q[qk] === false; saveUI(); renderRV(); return; }
@@ -1023,7 +1019,7 @@ function onClick(e) {
     else if (a === 'linkclose') { S.lkOpen = false; S.lkq = ''; renderSheet(); }
     else if (a === 'subadd') addSubtopic();
     else if (a === 'ontl') { var it2 = getItem(S.sel); if (it2) { closeSheet(true); showOnTimeline(it2); } }
-    else if (a === 'coback') { if (S.pc) S.pc = null; else S.pa = null; renderCO(); $('#v-co').scrollTop = 0; }
+    else if (a === 'coback') { if (S.pc) { if (!S.cq) S.creg = REGOF[S.pc] || S.creg; S.pc = null; } else { var A0 = areaGet(S.pa); if (A0 && !S.cq) S.creg = A0.region; S.pa = null; } renderCO(); $('#v-co').scrollTop = 0; }
     else if (a === 'addarea') startAdd('area');
     else if (a === 'editarea') { var E = areaGet(S.pa); S.edit = E.id; S.add = { type: 'area', title: E.name, countries: E.countries.slice(), why: E.why }; go('ad'); }
     else if (a === 'delarea') { if (el.dataset.sure) { var D = areaGet(S.pa); drop(D.id); S.pa = null; renderCO(); toast('Region deleted'); } else { el.dataset.sure = '1'; el.textContent = 'Tap again to delete'; } }
@@ -1076,6 +1072,7 @@ function onChange(e) {
   if (t.id === 'imp') { if (t.files && t.files[0]) importBackup(t.files[0]); t.value = ''; }
   else if (t.id === 'cf') { S.cf = t.value; renderTB(); renderTL(); }
   else if (t.id === 'rv-scope') { S.rvset.scope = t.value; renderRV(); }
+  else if (t.id === 'creg') { S.creg = t.value; renderCO(); $('#v-co').scrollTop = 0; }
   else if (t.id === 'f-type') {
     var a = S.add || {}; a.type = t.value;
     a.title = $('#f-title').value; a.why = $('#f-why').value;
@@ -1105,7 +1102,7 @@ function init() {
   });
   var raf = 0; $('#sc').addEventListener('scroll', function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; var v = viewYears(); if (v[0] < WIN[0] || v[1] > WIN[1]) renderTL(); else renderAxis(); }); });
   window.addEventListener('resize', function () { if (S.tab === 'tl') { S.P = clampP(S.P); renderTL(); } });
-  initPinch(); initOverview();
+  initPinch();
   setRange(1500, 1900); renderTB();
   initSync();
   window.__atlas = { S: S, go: go, openSheet: openSheet };
