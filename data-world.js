@@ -52,7 +52,14 @@ eu: [
 "Sweden|SE|SWE|Stockholm|59.3|18.1|Swedish|Lutheran (~55% nominal), majority non-practising",
 "Switzerland|CH|CHE|Bern|46.9|7.4|German, French, Italian, Romansh|Christian (~60%, split Catholic/Protestant), no religion (~30%)",
 "Ukraine|UA|UKR|Kyiv|50.5|30.5|Ukrainian, Russian|Orthodox (~70%), Greek Catholic (~8%)",
-"United Kingdom|GB|GBR|London|51.5|-0.1|English (also Welsh, Scots Gaelic)|Christian (~46%), no religion (~37%), Islam (~6%)"
+"United Kingdom|GB|GBR|London|51.5|-0.1|English (also Welsh, Scots Gaelic)|Christian (~46%), no religion (~37%), Islam (~6%)",
+"Andorra|AD|AND|Andorra la Vella|42.5|1.5|Catalan|Catholic (~85%)",
+"Kosovo|XK|XKX|Pristina|42.7|21.2|Albanian, Serbian|Sunni Islam (~95%); Serbian Orthodox and Catholic minorities",
+"Liechtenstein|LI|LIE|Vaduz|47.1|9.5|German|Catholic (~73%); Protestant and Muslim minorities",
+"Luxembourg|LU|LUX|Luxembourg|49.6|6.1|Luxembourgish, French, German|Catholic (majority, nominal); growing non-religious share",
+"Monaco|MC|MCO|Monaco|43.7|7.4|French|Catholic (~90%)",
+"San Marino|SM|SMR|San Marino|43.9|12.4|Italian|Catholic (~90%)",
+"Vatican City|VA|VAT|Vatican City|41.9|12.45|Italian, Latin|Catholic: seat of the Pope"
 ],
 me: [
 "Algeria|DZ|DZA|Algiers|36.8|3.1|Arabic, Tamazight (Berber), French|Sunni Islam (~98%)",
@@ -73,7 +80,9 @@ me: [
 "Tunisia|TN|TUN|Tunis|36.8|10.2|Arabic, French|Sunni Islam (~99%)",
 "Turkey|TR|TUR|Ankara|39.9|32.9|Turkish, Kurdish|Islam (~99% nominal, mostly Sunni with a large Alevi minority)",
 "United Arab Emirates|AE|ARE|Abu Dhabi|24.5|54.4|Arabic, English|Islam (~76%), large expatriate Hindu, Christian and other communities",
-"Yemen|YE|YEM|Sana'a (Aden is the rival seat)|15.4|44.2|Arabic|Islam (Sunni ~65%, Zaydi Shia ~35%)"
+"Yemen|YE|YEM|Sana'a (Aden is the rival seat)|15.4|44.2|Arabic|Islam (Sunni ~65%, Zaydi Shia ~35%)",
+"Bahrain|BH|BHR|Manama|26.2|50.6|Arabic|Islam (~70% of residents; Shia majority among citizens); Christian and Hindu migrant minorities",
+"Mauritania|MR|MRT|Nouakchott|18.1|-15.95|Arabic; Pulaar, Soninke, Wolof; French widely used|Sunni Islam (~99%)"
 ],
 af: [
 "Angola|AO|AGO|Luanda|-8.8|13.2|Portuguese, Umbundu, Kimbundu|Catholic (~40%), Protestant (~40%)",
@@ -97,7 +106,33 @@ af: [
 "Tanzania|TZ|TZA|Dodoma (Dar es Salaam is the largest city)|-6.2|35.7|Swahili, English|Christian (~60%), Islam (~35%)",
 "Uganda|UG|UGA|Kampala|0.35|32.6|English, Swahili, Luganda|Christian (~85%), Islam (~14%)",
 "Zambia|ZM|ZMB|Lusaka|-15.4|28.3|English, Bemba, Nyanja|Christian (~95%)",
-"Zimbabwe|ZW|ZWE|Harare|-17.8|31.05|English, Shona, Ndebele|Christian (~85%), traditional beliefs minority"
+"Zimbabwe|ZW|ZWE|Harare|-17.8|31.05|English, Shona, Ndebele|Christian (~85%), traditional beliefs minority",
+"Benin|BJ|BEN|Porto-Novo (government in Cotonou)|6.5|2.6|French, Fon, Yoruba|Christian (~50%), Islam (~28%), Vodun (~12%)",
+"Botswana|BW|BWA|Gaborone|-24.65|25.9|English, Setswana|Christian (~80%), traditional beliefs",
+"Burkina Faso|BF|BFA|Ouagadougou|12.4|-1.5|French, Mooré, Dioula, Fula|Islam (~60%), Christian (~25%), traditional beliefs",
+"Burundi|BI|BDI|Gitega (largest city Bujumbura)|-3.4|29.9|Kirundi, French, English|Christian (~90%)",
+"Cape Verde|CV|CPV|Praia|14.9|-23.5|Portuguese, Cape Verdean Creole|Catholic (~75%)",
+"Central African Republic|CF|CAF|Bangui|4.4|18.6|Sango, French|Christian (~80%), Islam (~10-15%)",
+"Chad|TD|TCD|N'Djamena|12.1|15.0|French, Arabic|Islam (~55%), Christian (~40%)",
+"Comoros|KM|COM|Moroni|-11.7|43.25|Comorian, Arabic, French|Sunni Islam (~98%)",
+"Republic of the Congo|CG|COG|Brazzaville|-4.3|15.3|French, Lingala, Kituba|Christian (~85%)",
+"Djibouti|DJ|DJI|Djibouti|11.6|43.1|French, Arabic, Somali, Afar|Sunni Islam (~94%)",
+"Equatorial Guinea|GQ|GNQ|Malabo|3.75|8.8|Spanish, French, Portuguese|Catholic (~80%)",
+"Eritrea|ER|ERI|Asmara|15.3|38.9|Tigrinya, Arabic, English|Christian (about half, mostly Orthodox), Sunni Islam (about half)",
+"Eswatini|SZ|SWZ|Mbabane (royal and legislative capital Lobamba)|-26.3|31.1|Swazi, English|Christian (~90%)",
+"Gabon|GA|GAB|Libreville|0.4|9.45|French|Christian (~80%), Islam (~10%)",
+"Gambia|GM|GMB|Banjul|13.45|-16.6|English, Mandinka, Wolof, Fula|Sunni Islam (~95%)",
+"Guinea|GN|GIN|Conakry|9.5|-13.7|French, Fula, Mandinka, Susu|Sunni Islam (~85%), Christian (~10%)",
+"Guinea-Bissau|GW|GNB|Bissau|11.9|-15.6|Portuguese, Guinea-Bissau Creole|Islam (~45%), Christian (~20%), traditional beliefs",
+"Lesotho|LS|LSO|Maseru|-29.3|27.5|Sesotho, English|Christian (~90%)",
+"Liberia|LR|LBR|Monrovia|6.3|-10.8|English|Christian (~85%), Islam (~12%)",
+"Malawi|MW|MWI|Lilongwe|-13.95|33.8|English, Chichewa|Christian (~80%), Islam (~14%)",
+"Mauritius|MU|MUS|Port Louis|-20.2|57.5|English, French, Mauritian Creole|Hindu (~48%), Christian (~32%), Islam (~17%)",
+"Niger|NE|NER|Niamey|13.5|2.1|French, Hausa, Zarma|Sunni Islam (~99%)",
+"São Tomé and Príncipe|ST|STP|São Tomé|0.3|6.7|Portuguese|Catholic (~55%), other Christian",
+"Seychelles|SC|SYC|Victoria|-4.6|55.45|Seychellois Creole, English, French|Catholic (~75%)",
+"Sierra Leone|SL|SLE|Freetown|8.5|-13.2|English, Krio|Islam (~75%), Christian (~20%)",
+"Togo|TG|TGO|Lomé|6.1|1.2|French, Ewe, Kabiyè|Christian (~45%), traditional beliefs (~35%), Islam (~15%)"
 ],
 sa: [
 "Afghanistan|AF|AFG|Kabul|34.5|69.2|Pashto, Dari|Sunni Islam (~85-90%), Shia (~10-15%)",
@@ -147,7 +182,13 @@ se: [
 "Timor-Leste|TL|TLS|Dili|-8.6|125.6|Tetum, Portuguese|Catholic (~97%)",
 "Tonga|TO|TON|Nuku'alofa|-21.1|-175.2|Tongan, English|Christian (~98%, mainly Free Wesleyan)",
 "Vanuatu|VU|VUT|Port Vila|-17.7|168.3|Bislama, English, French (plus 100+ local languages)|Christian (~85%); kastom and cargo-cult traditions including John Frum",
-"Vietnam|VN|VNM|Hanoi|21.0|105.8|Vietnamese|Most non-religious or folk religion; Buddhism (~15%), Catholic (~7%)"
+"Vietnam|VN|VNM|Hanoi|21.0|105.8|Vietnamese|Most non-religious or folk religion; Buddhism (~15%), Catholic (~7%)",
+"Kiribati|KI|KIR|South Tarawa|1.3|173.0|English, Gilbertese|Christian (~95%)",
+"Marshall Islands|MH|MHL|Majuro|7.1|171.4|Marshallese, English|Christian (~95%)",
+"Micronesia|FM|FSM|Palikir|6.9|158.2|English, Chuukese, Pohnpeian and others|Christian (~95%)",
+"Nauru|NR|NRU|Yaren (no official capital)|-0.55|166.9|Nauruan, English|Christian (~75%)",
+"Palau|PW|PLW|Ngerulmud|7.5|134.6|Palauan, English|Christian (~75%); Modekngei",
+"Tuvalu|TV|TUV|Funafuti|-8.5|179.2|Tuvaluan, English|Christian (~95%), mainly Church of Tuvalu"
 ],
 am: [
 "Argentina|AR|ARG|Buenos Aires|-34.6|-58.4|Spanish|Catholic (~60-65%), Protestant (~15%), no religion (~19%)",
@@ -169,7 +210,22 @@ am: [
 "Peru|PE|PER|Lima|-12.0|-77.0|Spanish, Quechua, Aymara|Catholic (~75%), evangelical (~15%)",
 "United States|US|USA|Washington, D.C.|38.9|-77.0|English (de facto), Spanish widely spoken|Christian (~63%), no religion (~29%), other faiths minorities",
 "Uruguay|UY|URY|Montevideo|-34.9|-56.2|Spanish|Catholic (~45%), no religion (~40%)",
-"Venezuela|VE|VEN|Caracas|10.5|-66.9|Spanish|Catholic (~70%), Protestant (~15%)"
+"Venezuela|VE|VEN|Caracas|10.5|-66.9|Spanish|Catholic (~70%), Protestant (~15%)",
+"Antigua and Barbuda|AG|ATG|St John's|17.1|-61.85|English|Christian (~90%)",
+"Bahamas|BS|BHS|Nassau|25.05|-77.35|English|Christian (~90%)",
+"Barbados|BB|BRB|Bridgetown|13.1|-59.6|English, Bajan|Christian (~75%)",
+"Belize|BZ|BLZ|Belmopan|17.25|-88.8|English, Spanish, Kriol|Catholic (~40%), Protestant (~30%)",
+"Dominica|DM|DMA|Roseau|15.3|-61.4|English, Dominican Creole French|Catholic (~60%)",
+"Dominican Republic|DO|DOM|Santo Domingo|18.5|-69.9|Spanish|Catholic (majority), evangelical (~20%)",
+"El Salvador|SV|SLV|San Salvador|13.7|-89.2|Spanish|Catholic (~40-50%), evangelical (~35%)",
+"Grenada|GD|GRD|St George's|12.05|-61.75|English|Christian (~95%)",
+"Guyana|GY|GUY|Georgetown|6.8|-58.15|English, Guyanese Creole|Christian (~65%), Hindu (~25%), Islam (~7%)",
+"Honduras|HN|HND|Tegucigalpa|14.1|-87.2|Spanish|Catholic (~45%), evangelical (~40%)",
+"Saint Kitts and Nevis|KN|KNA|Basseterre|17.3|-62.7|English|Christian (~90%)",
+"Saint Lucia|LC|LCA|Castries|14.0|-61.0|English, Saint Lucian Creole French|Catholic (~60%)",
+"Saint Vincent and the Grenadines|VC|VCT|Kingstown|13.15|-61.2|English|Christian (~90%)",
+"Suriname|SR|SUR|Paramaribo|5.85|-55.2|Dutch, Sranan Tongo|Christian (~50%), Hindu (~20%), Islam (~14%)",
+"Trinidad and Tobago|TT|TTO|Port of Spain|10.65|-61.5|English|Christian (~55%), Hindu (~18%), Islam (~5%)"
 ]
 };
 
@@ -183,6 +239,7 @@ var CO = {}, PROF = {}, REGOF = {};
       PROF[p[0]] = { iso2: p[1], iso3: p[2], cap: p[3], lat: +p[4], lon: +p[5], lang: p[6], rel: p[7], region: r };
       CO[r].push(p[0]); REGOF[p[0]] = r;
     });
+    CO[r].sort(function (a, b) { return a.localeCompare(b); });
   });
 })();
 function flagOf(c) {
