@@ -7,9 +7,9 @@ var $ = function (s, r) { return (r || document).querySelector(s); };
 var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
 var fy = function (y) { return y < 0 ? (-y) + ' BCE' : (y < 1000 ? y + ' CE' : String(y)); };
 var era = function (y) { return y < 500 ? 'Ancient' : y < 1500 ? 'Medieval' : y < 1900 ? 'Early modern' : 'Modern'; };
-var TYPE = { evt: 'Event', emp: 'Span', ppl: 'Person', plc: 'Place' };
+var TYPE = { evt: 'Event', emp: 'Span', ppl: 'Person', plc: 'Place', todo: 'To read' };
 var RD = ['To read', 'Reading', 'Read'], RDI = ['○', '◐', '●'];
-function toast(m) { var t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); }
+function toast(m) { document.querySelectorAll('.toast').forEach(function (x) { x.remove(); }); var t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 1800); }
 function setStatus(m) { $('#st').textContent = m; }
 
 /* ---------- persistence: this device always, your account when available ---------- */
@@ -53,7 +53,7 @@ function initSync() {
 /* ---------- items and links ---------- */
 function customItems() {
   var out = [];
-  S.docs.forEach(function (d, id) { if (d && d.c) { var c = d.c; out.push({ id: id, type: c.type, region: c.region, country: c.country || '', start: c.start, end: c.end == null ? null : c.end, title: c.title, why: c.why || '', tier: c.tier || 1, who: c.who || '', custom: true }); } });
+  S.docs.forEach(function (d, id) { if (d && d.c) { var c = d.c; out.push({ id: id, type: c.type, region: c.region, country: c.country || '', countries: c.countries || (c.country ? [c.country] : []), start: c.start, end: c.end == null ? null : c.end, title: c.title, why: c.why || '', tier: c.tier || 1, who: c.who || '', custom: true }); } });
   return out;
 }
 function allItems() { return SEED.concat(customItems()); }
@@ -68,8 +68,12 @@ function yearLine(it) {
   if (it.type === 'evt') return fy(it.start) + ' · ' + era(it.start);
   if (it.type === 'emp') return fy(it.start) + ' – ' + (it.end >= 2026 ? 'present' : fy(it.end));
   if (it.type === 'ppl') return it.end == null ? 'b. ' + fy(it.start) : fy(it.start) + ' – ' + fy(it.end);
+  if (it.type === 'todo') return whereOf(it);
   return it.country;
 }
+function regName(id) { return (REG.find(function (r) { return r.id === id; }) || {}).name || ''; }
+function whereOf(it) { var cs = it.countries || []; return cs.length ? cs.join(', ') : regName(it.region); }
+function hasCountry(it, c) { return it.country === c || (it.countries || []).indexOf(c) > -1; }
 function readCls(it) { return doc(it.id).r === 2 ? ' read-2' : ''; }
 function countryOptions(sel, blank) {
   var h = blank ? '<option value="">' + esc(blank) + '</option>' : '';
@@ -259,7 +263,7 @@ function renderSheet() {
     var o = getItem(id), user = mine.has(id) || (doc(id).l || []).indexOf(it.id) > -1;
     return '<span class="lk-chip"><button class="x" style="font-size:13px;font-weight:600;color:var(--ink);text-align:left" data-open="' + id + '">' + esc(o.title) + ' <small>' + TYPE[o.type] + (o.type === 'evt' ? ' ' + fy(o.start) : '') + '</small></button>' + (user ? '<button class="x" aria-label="Remove link" data-un="' + id + '">×</button>' : '') + '</span>';
   }).join('') || '<span class="muted" style="font-size:13px">No links yet.</span>';
-  var flag = it.country ? flagOf(it.country) + ' ' + esc(it.country) : esc((REG.find(function (r) { return r.id === it.region; }) || {}).name || '');
+  var flag = it.type === 'todo' ? esc(whereOf(it) || 'Anywhere') : it.country ? flagOf(it.country) + ' ' + esc(it.country) : esc(regName(it.region));
   sh.innerHTML =
     '<div class="sh-h"><span class="tag" style="--rc:' + rc + '">' + TYPE[it.type] + ' · ' + flag + '</span><button class="btn sm" data-act="close">Close</button></div>' +
     '<h2>' + esc(it.title) + '</h2><div class="yr">' + esc(yearLine(it)) + '</div>' +
@@ -267,7 +271,8 @@ function renderSheet() {
     (it.who ? '<p class="who"><b>Involved:</b> ' + esc(it.who) + '</p>' : '') +
     '<div class="row" style="margin:8px 0"><button class="btn sm" data-rd="' + it.id + '">' + RDI[d.r || 0] + ' ' + RD[d.r || 0] + '</button>' +
     (it.type === 'evt' || it.type === 'emp' ? '<button class="btn sm" data-act="ontl">Show on timeline</button>' : '') +
-    (it.country ? '<button class="btn sm" data-country="' + esc(it.country) + '">Country page</button>' : '') + '</div>' +
+    (it.type === 'todo' ? (it.countries || []).map(function (c) { return '<button class="btn sm" data-country="' + esc(c) + '">' + flagOf(c) + ' ' + esc(c) + '</button>'; }).join('') : it.country ? '<button class="btn sm" data-country="' + esc(it.country) + '">Country page</button>' : '') + '</div>' +
+    (it.type === 'todo' ? '<p class="muted" style="font-size:12.5px;margin:4px 0 0">Once you know when it happened, tap Edit and change the type to Event or Span to put it on the timeline. Your notes and links come with it.</p>' : '') +
     '<label for="nt">Your notes</label><textarea id="nt" placeholder="What you read, what stuck, what to look up next">' + esc(d.n || '') + '</textarea>' +
     '<h3>Linked</h3><div class="lk-chips">' + chips + '</div>' +
     '<div style="margin-top:10px">' + (S.lkOpen ? '<input id="lq" type="search" placeholder="Search events, people, places" value="' + esc(S.lkq) + '" aria-label="Search to link"><div id="lres" class="res"></div>' : '<button class="btn sm" data-act="linkopen">+ Link an event, person or place</button>') + '</div>' +
@@ -315,13 +320,15 @@ function renderCountry(v) {
   var rel = function (i) { return i.country === c || linksOf(i.id).some(function (x) { return evIds.has(x); }); };
   var ppl = items.filter(function (i) { return i.type === 'ppl' && rel(i); }).sort(function (a, b) { return a.start - b.start; });
   var plc = items.filter(function (i) { return i.type === 'plc' && rel(i); });
+  var tds = items.filter(function (i) { return i.type === 'todo' && hasCountry(i, c); });
   var cn = doc('cn-' + slug(c)).n || '';
   v.innerHTML = '<div class="pad"><button class="btn sm" data-act="coback">← All countries</button>' +
     '<div class="row" style="margin-top:12px;gap:14px;align-items:center"><span class="bigflag">' + flagOf(c) + '</span><div><h2 style="margin:0">' + esc(c) + '</h2><span class="tag" style="--rc:var(--r-' + reg.id + ')">' + esc(reg.name) + '</span></div></div>' +
     (p.cap ? '<dl class="prof"><dt>Capital</dt><dd>' + esc(p.cap) + '</dd><dt>Languages</dt><dd>' + esc(p.lang) + '</dd><dt>Religions</dt><dd>' + esc(p.rel) + '</dd></dl><div class="muted" style="font-size:11.5px">Figures are approximate; check a current source before relying on them.</div>' : '') +
     (p.lat != null && p.iso3 ? '<div class="map" id="map" style="margin-top:12px"></div><a class="muted" style="font-size:12px" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=' + p.lat + '&mlon=' + p.lon + '#map=5/' + p.lat + '/' + p.lon + '">Open a detailed map of the capital area</a>' : '') +
     '<h3>Reading list</h3>' + (pr.n ? '<div><b>' + pr.done + ' of ' + pr.n + '</b> key events read</div><div class="bar-prog"><i style="width:' + Math.round(pr.done / pr.n * 100) + '%"></i></div>' : '<p class="muted">No starter events for this country yet. Add the ones you read about.</p>') +
-    '<div class="row" style="margin:8px 0"><button class="btn sm pri" data-act="addhere">Add event here</button><button class="btn sm" data-act="rvhere">Revise this country</button><button class="btn sm" data-act="cftl">Show on timeline</button></div>' +
+    '<div class="row" style="margin:8px 0"><button class="btn sm pri" data-act="addhere">Add event here</button><button class="btn sm" data-act="todohere">+ To read</button><button class="btn sm" data-act="rvhere">Revise this country</button><button class="btn sm" data-act="cftl">Show on timeline</button></div>' +
+    (tds.length ? '<h3>To read about</h3><div class="list">' + tds.map(function (e) { return rowHtml(e, true); }).join('') + '</div>' : '') +
     '<label for="cnote">Notes on ' + esc(c) + '</label><textarea id="cnote" placeholder="Overview, themes, what to read next">' + esc(cn) + '</textarea>' +
     eraGroups(evs).map(function (g) { return '<h3>' + g[0] + '</h3><div class="list">' + g[1].map(function (e) { return rowHtml(e, true); }).join('') + '</div>'; }).join('') +
     (ppl.length ? '<h3>People</h3><div class="list">' + ppl.map(function (e) { return rowHtml(e, true); }).join('') + '</div>' : '') +
@@ -369,13 +376,23 @@ function mountMap(c) {
 
 /* ---------- people and places ---------- */
 function renderPP() {
-  var v = $('#v-pp'), q = S.pq.trim().toLowerCase();
-  var list = allItems().filter(function (i) { return i.type === S.pp && (!q || (i.title + ' ' + i.country + ' ' + i.why).toLowerCase().indexOf(q) > -1); });
-  list.sort(function (a, b) { return S.pp === 'ppl' ? a.start - b.start : a.title.localeCompare(b.title); });
-  v.innerHTML = '<div class="pad"><h2>People and places</h2><div class="row" style="margin-bottom:8px"><div class="seg"><button data-pp="ppl" aria-pressed="' + (S.pp === 'ppl') + '">People</button><button data-pp="plc" aria-pressed="' + (S.pp === 'plc') + '">Places</button></div><button class="btn sm pri" data-act="addpp">Add</button></div>' +
+  var v = $('#v-pp'), q = S.pq.trim().toLowerCase(), td = S.pp === 'todo';
+  var list = allItems().filter(function (i) { return i.type === S.pp && (!q || (i.title + ' ' + whereOf(i) + ' ' + i.country + ' ' + i.why).toLowerCase().indexOf(q) > -1); });
+  /* To read: unfinished first, newest first within each group. */
+  list.sort(function (a, b) { return S.pp === 'ppl' ? a.start - b.start : td ? ((doc(a.id).r === 2) - (doc(b.id).r === 2)) || (a.id < b.id ? 1 : -1) : a.title.localeCompare(b.title); });
+  var seg = '<div class="seg"><button data-pp="ppl" aria-pressed="' + (S.pp === 'ppl') + '">People</button><button data-pp="plc" aria-pressed="' + (S.pp === 'plc') + '">Places</button><button data-pp="todo" aria-pressed="' + td + '">To read</button></div>';
+  v.innerHTML = '<div class="pad"><h2>Lists</h2><div class="row" style="margin-bottom:8px">' + seg + (td ? '' : '<button class="btn sm pri" data-act="addpp">Add</button>') + '</div>' +
+    (td ? '<p class="muted" style="margin:4px 0 8px;font-size:13px">Topics you want to look into. No date or country needed.</p><div class="row" style="flex-wrap:nowrap;margin-bottom:10px"><input id="tdq" type="text" placeholder="e.g. The Yazidis" aria-label="New topic to read about" autocomplete="off"><button class="btn pri" data-act="tdadd">Add</button></div>' : '') +
     '<input id="pq" type="search" placeholder="Search" value="' + esc(S.pq) + '" aria-label="Search"><div class="list">' + list.map(function (i) {
+      if (td) { var d = doc(i.id); return '<div class="li" role="button" tabindex="0" data-open="' + i.id + '"><button class="rs" data-rd="' + i.id + '" aria-label="Status: ' + RD[d.r || 0] + '">' + RDI[d.r || 0] + '</button><span><span class="t"' + (d.r === 2 ? ' style="text-decoration:line-through;color:var(--muted)"' : '') + '>' + esc(i.title) + '</span>' + (whereOf(i) ? ' <span class="s">' + esc(whereOf(i)) + '</span>' : '') + (i.why ? '<br><span class="s">' + esc(i.why) + '</span>' : '') + '</span></div>'; }
       return '<div class="li" role="button" tabindex="0" data-open="' + i.id + '"><span class="fl">' + flagOf(i.country) + '</span><span><span class="t">' + esc(i.title) + '</span> <span class="s">' + esc(i.type === 'ppl' ? yearLine(i) : i.country) + '</span><br><span class="s">' + esc(i.why) + '</span></span></div>';
-    }).join('') + '</div></div>';
+    }).join('') + (td && !list.length && !q ? '<p class="muted">Nothing yet. Type a topic above and tap Add; you can add notes, countries and links afterwards.</p>' : '') + '</div></div>';
+}
+function quickTodo() {
+  var el = $('#tdq'), t = el && el.value.trim(); if (!t) { if (el) el.focus(); return; }
+  var id = 'u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  upd(id, function (d) { d.c = { type: 'todo', title: t, country: '', countries: [], region: '', why: '', tier: 1, who: '', start: null, end: null }; });
+  toast('Added to your list'); renderPP(); openSheet(id);
 }
 
 /* ---------- revise ---------- */
@@ -459,12 +476,13 @@ function renderAD() {
   var v = $('#v-ad'), a = S.add || { type: 'evt', country: '', region: 'eu', tier: 1 }; S.add = a;
   var t = a.type;
   v.innerHTML = '<div class="pad"><h2>' + (S.edit ? 'Edit entry' : 'Add to the atlas') + '</h2>' +
-    '<label for="f-type">What are you adding?</label><select id="f-type"><option value="evt"' + (t === 'evt' ? ' selected' : '') + '>Event (a moment)</option><option value="emp"' + (t === 'emp' ? ' selected' : '') + '>Empire, era or war (a span)</option><option value="ppl"' + (t === 'ppl' ? ' selected' : '') + '>Person</option><option value="plc"' + (t === 'plc' ? ' selected' : '') + '>Place</option></select>' +
-    '<label for="f-title">' + (t === 'ppl' ? 'Name' : 'Title') + '</label><input id="f-title" type="text" value="' + esc(a.title || '') + '" autocomplete="off">' +
-    '<label for="f-country">Country (optional)</label><select id="f-country">' + countryOptions(a.country, 'No country (e.g. Assyria, the Silk Road)') + '</select>' +
-    '<div id="f-regwrap"' + (a.country ? ' hidden' : '') + '><label for="f-region">Region (which timeline row it goes on)</label><select id="f-region">' + REG.map(function (r) { return '<option value="' + r.id + '"' + (a.region === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select></div>' +
+    '<label for="f-type">What are you adding?</label><select id="f-type"><option value="evt"' + (t === 'evt' ? ' selected' : '') + '>Event (a moment)</option><option value="emp"' + (t === 'emp' ? ' selected' : '') + '>Empire, era or war (a span)</option><option value="ppl"' + (t === 'ppl' ? ' selected' : '') + '>Person</option><option value="plc"' + (t === 'plc' ? ' selected' : '') + '>Place</option><option value="todo"' + (t === 'todo' ? ' selected' : '') + '>Topic to read about (no date needed)</option></select>' +
+    '<label for="f-title">' + (t === 'ppl' ? 'Name' : t === 'todo' ? 'Topic' : 'Title') + '</label><input id="f-title" type="text" value="' + esc(a.title || '') + '" autocomplete="off">' +
+    (t === 'todo' ? '<label for="f-countries">Countries (optional, choose as many as you like)</label><select id="f-countries" multiple size="6">' + countryOptions(null).replace(/<option>([^<]*)<\/option>/g, function (m, c) { return (a.countries || []).indexOf(c.replace(/&amp;/g, '&')) > -1 ? '<option selected>' + c + '</option>' : m; }) + '</select>' :
+    '<label for="f-country">Country (optional)</label><select id="f-country">' + countryOptions(a.country, 'No country (e.g. Assyria, the Silk Road)') + '</select>') +
+    '<div id="f-regwrap"' + (a.country && t !== 'todo' ? ' hidden' : '') + '><label for="f-region">' + (t === 'todo' ? 'Region (used when no country is chosen)' : 'Region (which timeline row it goes on)') + '</label><select id="f-region">' + REG.map(function (r) { return '<option value="' + r.id + '"' + (a.region === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select></div>' +
     (t === 'evt' ? yearField('f-y1', 'Year', a.start) : '') + (t === 'emp' ? yearField('f-y1', 'Start year', a.start) + yearField('f-y2', 'End year', a.end) : '') + (t === 'ppl' ? yearField('f-y1', 'Born', a.start) + yearField('f-y2', 'Died (leave blank if unknown or alive)', a.end) : '') +
-    '<label for="f-why">' + (t === 'plc' ? 'What it is known for' : t === 'ppl' ? 'Who they were' : 'Why it matters') + '</label><textarea id="f-why" style="min-height:70px">' + esc(a.why || '') + '</textarea>' +
+    '<label for="f-why">' + (t === 'plc' ? 'What it is known for' : t === 'ppl' ? 'Who they were' : t === 'todo' ? 'Notes (where you came across it, what to look into)' : 'Why it matters') + '</label><textarea id="f-why" style="min-height:70px">' + esc(a.why || '') + '</textarea>' +
     (t === 'evt' ? '<label for="f-who">Who or what was involved</label><input id="f-who" type="text" value="' + esc(a.who || '') + '">' + '<label for="f-tier">How important</label><select id="f-tier"><option value="1"' + (a.tier === 1 ? ' selected' : '') + '>Key event</option><option value="2"' + (a.tier === 2 ? ' selected' : '') + '>Detail</option></select>' : '') +
     '<div id="f-err" class="err" role="alert"></div><div class="row" style="margin-top:16px"><button class="btn pri" data-act="save">Save</button>' + (S.edit ? '<button class="btn" data-act="cancel">Cancel</button>' : '') + '</div>' +
     '<p class="muted" style="font-size:12.5px;margin-top:16px">After saving you can add notes and link it to other events, people and places.</p>' +
@@ -486,14 +504,18 @@ function importBackup(file) {
   rd.readAsText(file);
 }
 function saveEntry() {
-  var t = $('#f-type').value, title = $('#f-title').value.trim(), country = $('#f-country').value, err = $('#f-err');
+  var t = $('#f-type').value, title = $('#f-title').value.trim(), err = $('#f-err');
+  var countries = t === 'todo' ? Array.from($('#f-countries').selectedOptions).map(function (o) { return o.value; }) : [];
+  var country = t === 'todo' ? (countries[0] || '') : $('#f-country').value;
   var c = { type: t, title: title, country: country, why: $('#f-why').value.trim(), tier: 1, who: '', start: null, end: null, region: '' };
   if (!title) { err.textContent = 'Add a title.'; return; }
   c.region = country ? REGOF[country] : $('#f-region').value;
+  if (t === 'todo') c.countries = countries;
   if (t === 'evt') { c.start = readYear('f-y1'); c.who = $('#f-who').value.trim(); c.tier = parseInt($('#f-tier').value, 10); }
   if (t === 'emp' || t === 'ppl') { c.start = readYear('f-y1'); c.end = readYear('f-y2', true); }
-  if (t !== 'plc' && (c.start == null || isNaN(c.start))) { err.textContent = 'Enter a valid year.'; return; }
-  if (t !== 'plc' && (c.start < MIN || c.start > MAX)) { err.textContent = 'The timeline runs from 3500 BCE to 2030.'; return; }
+  var dated = t !== 'plc' && t !== 'todo';
+  if (dated && (c.start == null || isNaN(c.start))) { err.textContent = 'Enter a valid year.'; return; }
+  if (dated && (c.start < MIN || c.start > MAX)) { err.textContent = 'The timeline runs from 3500 BCE to 2030.'; return; }
   if (t === 'emp' && (c.end == null || isNaN(c.end) || c.end < c.start)) { err.textContent = 'Enter an end year after the start.'; return; }
   if (t === 'ppl' && c.end != null && (isNaN(c.end) || c.end < c.start)) { err.textContent = 'The year they died must be after they were born.'; return; }
   var id = S.edit || ('u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5));
@@ -569,12 +591,14 @@ function onClick(e) {
     else if (a === 'ontl') { var it2 = getItem(S.sel); go('tl'); showForItem(it2); if (it2) { if (S.P < 3 && it2.type === 'evt') setRange(it2.start - 70, it2.start + 70); renderTL(); gotoYear(it2.start); } }
     else if (a === 'coback') { S.pc = null; renderCO(); }
     else if (a === 'addhere') { S.edit = null; S.add = { type: 'evt', country: S.pc, region: REGOF[S.pc], tier: 1 }; go('ad'); }
+    else if (a === 'tdadd') quickTodo();
+    else if (a === 'todohere') { S.edit = null; S.add = { type: 'todo', country: S.pc, countries: [S.pc], region: REGOF[S.pc], tier: 1 }; go('ad'); }
     else if (a === 'addpp') { S.edit = null; S.add = { type: S.pp, country: '', region: 'eu', tier: 1 }; go('ad'); }
     else if (a === 'rvhere') { S.rvset.scope = 'c:' + S.pc; S.rv = null; go('rv'); }
     else if (a === 'cftl') { S.cf = S.pc; renderTB(); go('tl'); setRange(1500, 2030); }
     else if (a === 'edit') {
       var it3 = getItem(S.sel); if (!it3) return;
-      S.edit = it3.id; S.add = { type: it3.type, country: it3.country, region: it3.region, title: it3.title, why: it3.why, who: it3.who, tier: it3.tier, start: it3.start, end: it3.end };
+      S.edit = it3.id; S.add = { type: it3.type, country: it3.country, countries: it3.countries, region: it3.region, title: it3.title, why: it3.why, who: it3.who, tier: it3.tier, start: it3.start, end: it3.end };
       closeSheet(); go('ad');
     }
     else if (a === 'del') { var id = S.sel; if (el.dataset.sure) { drop(id); closeSheet(); renderCurrent(); toast('Deleted'); } else { el.dataset.sure = '1'; el.textContent = 'Tap again to delete'; } }
@@ -603,7 +627,9 @@ function onChange(e) {
   else if (t.id === 'rv-scope') { S.rvset.scope = t.value; renderRV(); }
   else if (t.id === 'f-type') {
     var a = S.add || {}; a.type = t.value;
-    a.title = $('#f-title').value; a.why = $('#f-why').value; a.country = $('#f-country').value; a.region = $('#f-region').value;
+    a.title = $('#f-title').value; a.why = $('#f-why').value; a.region = $('#f-region').value;
+    if ($('#f-countries')) { a.countries = Array.from($('#f-countries').selectedOptions).map(function (o) { return o.value; }); a.country = a.countries[0] || ''; }
+    else { a.country = $('#f-country').value; a.countries = a.country ? [a.country] : []; }
     if ($('#f-y1')) a.start = readYear('f-y1', true); if ($('#f-y2')) a.end = readYear('f-y2', true);
     if ($('#f-who')) a.who = $('#f-who').value; if ($('#f-tier')) a.tier = parseInt($('#f-tier').value, 10);
     S.add = a; renderAD();
@@ -613,6 +639,7 @@ function onChange(e) {
 function init() {
   loadLocal(); loadUI(); renderTB();
   document.addEventListener('click', onClick); document.addEventListener('input', onInput); document.addEventListener('change', onChange);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.id === 'tdq') { e.preventDefault(); quickTodo(); } });
   document.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.li[role=button]')) { e.preventDefault(); e.target.click(); } });
   var raf = 0; $('#sc').addEventListener('scroll', function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; var v = viewYears(); if (v[0] < WIN[0] || v[1] > WIN[1]) renderTL(); else renderAxis(); }); });
   window.addEventListener('resize', function () { if (S.tab === 'tl') { S.P = clampP(S.P); renderTL(); } });
